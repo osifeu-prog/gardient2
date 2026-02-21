@@ -1,0 +1,5 @@
+﻿[
+    { "name": "API", "url": "https://your-public-domain.com/api-docs" },
+    { "name": "Scheduler", "url": "https://your-public-domain.com/scheduler" },
+    { "name": "Worker", "url": "https://your-public-domain.com/worker" }
+]
