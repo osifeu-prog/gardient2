@@ -1,17 +1,5 @@
-﻿# Node / JS (if needed)
-node_modules/
-dist/
-
-# PowerShell sensitive
-*.ps1.profile
+﻿*.log
+.env
 config.ps1
-
-# Logs
-*.log
-
-# OS
 Thumbs.db
 .DS_Store
-
-# Secrets
-.env
