@@ -1,4 +1,4 @@
-﻿import os
+import os
 import logging
 import asyncio
 from dotenv import load_dotenv
@@ -10,13 +10,25 @@ load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 
+# Configure logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
 
+# Redact token in httpx logs
+class RedactedHTTPXFilter(logging.Filter):
+    def filter(self, record):
+        if TOKEN:
+            record.msg = record.getMessage().replace(TOKEN, "<REDACTED>")
+        return True
+
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.addFilter(RedactedHTTPXFilter())
+
+# Bot commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🛡 Guardian SaaS is running.")
+    await update.message.reply_text("🟢 Guardian SaaS is running.")
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ System operational.")
