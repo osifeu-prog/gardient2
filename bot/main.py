@@ -61,6 +61,18 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text("🚀 BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
+
+async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id if update.effective_chat else None
+    user_id = update.effective_user.id if update.effective_user else None
+    username = update.effective_user.username if update.effective_user else None
+    await update.message.reply_text(
+        "👤 whoami\n"
+        f"chat_id: {chat_id}\n"
+        f"user_id: {user_id}\n"
+        f"username: @{username}\n"
+        f"is_admin: {is_admin(update)}"
+    )
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     err = context.error
     logging.getLogger(__name__).exception("Unhandled error", exc_info=err)
@@ -96,3 +108,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
