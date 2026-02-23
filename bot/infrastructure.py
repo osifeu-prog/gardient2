@@ -1,4 +1,4 @@
-﻿import os
+import os
 import logging
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text

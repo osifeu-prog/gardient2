@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import os
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -13,9 +13,9 @@ async def test_db_connection():
         async with engine.begin() as conn:
             await conn.run_sync(lambda conn: print('DB Connection Successful'))
         await engine.dispose()
-        print('? DB check passed')
+        print('✅ DB check passed')
     except Exception as e:
-        print(f'? DB check failed: {e}')
+        print(f'❌ DB check failed: {e}')
 
 if __name__ == '__main__':
     asyncio.run(test_db_connection())

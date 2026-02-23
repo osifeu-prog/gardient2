@@ -1,1 +1,1 @@
-﻿# Data models placeholder
+# Data models placeholder

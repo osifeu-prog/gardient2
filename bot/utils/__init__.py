@@ -1,1 +1,1 @@
-﻿# Utility functions placeholder
+# Utility functions placeholder

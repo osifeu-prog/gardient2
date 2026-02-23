@@ -1,1 +1,1 @@
-﻿# Telegram bot commands placeholder
+# Telegram bot commands placeholder

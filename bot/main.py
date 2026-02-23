@@ -1,4 +1,4 @@
-﻿import os
+import os
 import logging
 from dotenv import load_dotenv
 from telegram import Update
