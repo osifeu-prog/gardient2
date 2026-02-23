@@ -1,12 +1,10 @@
 ﻿import os
 import logging
+import asyncio
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from bot.infrastructure import init_infrastructure
 
 load_dotenv()
 
@@ -18,21 +16,29 @@ logging.basicConfig(
 )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🛡 Telegram Guardian Bot is running.")
+    await update.message.reply_text("🛡 Guardian SaaS is running.")
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✅ System status: OK")
+    await update.message.reply_text("✅ System operational.")
+
+async def post_init(app):
+    await init_infrastructure()
 
 def main():
     if not TOKEN:
-        raise ValueError("BOT_TOKEN not set in environment")
+        raise ValueError("BOT_TOKEN not set")
 
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .post_init(post_init)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("status", status))
 
-    print("Telegram Guardian Bot started")
+    print("Guardian SaaS started")
     app.run_polling()
 
 if __name__ == "__main__":
