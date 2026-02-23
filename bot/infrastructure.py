@@ -1,4 +1,4 @@
-import os
+﻿import os
 import logging
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
@@ -50,3 +50,26 @@ async def healthcheck():
         logger.info("Redis connection: OK")
     else:
         raise RuntimeError("Redis healthcheck failed")
+
+def alembic_indicator() -> str:
+    mig_dir = os.path.join(os.getcwd(), "migrations")
+    ok = os.path.isdir(mig_dir)
+    return f"Alembic: {'OK' if ok else 'MISSING'} (migrations folder)"
+
+async def runtime_report(full: bool = False) -> str:
+    lines = []
+    lines.append("🧾 SLH Guardian — Runtime Report")
+    lines.append(f"ENV: {os.getenv('ENV', 'production')}")
+    lines.append(f"MODE: {os.getenv('MODE', 'polling')}")
+    lines.append("")
+    lines.append(f"Postgres: {'OK' if engine is not None else 'NOT INIT'}")
+    lines.append(f"Redis: {'OK' if redis_client is not None else 'NOT INIT'}")
+    lines.append(alembic_indicator())
+
+    if full:
+        lines.append("")
+        lines.append("🔐 Vars present:")
+        for k in ("BOT_TOKEN","DATABASE_URL","REDIS_URL","ADMIN_CHAT_ID","WEBHOOK_URL"):
+            lines.append(f"{k}: {'SET' if os.getenv(k) else 'MISSING'}")
+
+    return "\n".join(lines)
