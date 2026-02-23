@@ -1,21 +1,4 @@
-version: '3.9'
 services:
-  bot:
-    build: ./docker
-    env_file: ../.env.example
-    command: python bot/main.py
-    depends_on:
-      - db
-      - redis
-  dashboard:
-    build: ./docker
-    env_file: ../.env.example
-    command: python dashboard/app.py
-    ports:
-      - '5000:5000'
-    depends_on:
-      - db
-      - redis
   db:
     image: postgres:15
     environment:
@@ -23,12 +6,48 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: tg_guardian
     ports:
-      - '5432:5432'
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
   redis:
     image: redis:7
     ports:
-      - '6379:6379'
+      - "6379:6379"
+
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      PYTHONPATH: /app
+      ENV: 
+      MODE: 
+      ADMIN_CHAT_ID: 
+      BOT_TOKEN: ${BOT_TOKEN}
+      REDIS_URL: ${REDIS_URL}
+      - db
+      - redis
+    command: ["python","-m","bot.main"]
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      PYTHONPATH: /app
+      ENV: 
+      MODE: 
+    depends_on:
+      - db
+      - redis
+    command: ["python","dashboard/app.py"]
+    ports:
+      - "5000:5000"
+
 volumes:
   pgdata:
