@@ -1,6 +1,5 @@
-import os
+﻿import os
 import logging
-import asyncio
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -10,25 +9,23 @@ load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Configure logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
 
-# Redact token in httpx logs
 class RedactedHTTPXFilter(logging.Filter):
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         if TOKEN:
-            record.msg = record.getMessage().replace(TOKEN, "<REDACTED>")
+            msg = str(record.getMessage()).replace(TOKEN, "<REDACTED>")
+            record.msg = msg
+            record.args = ()
         return True
 
-httpx_logger = logging.getLogger("httpx")
-httpx_logger.addFilter(RedactedHTTPXFilter())
+logging.getLogger("httpx").addFilter(RedactedHTTPXFilter())
 
-# Bot commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🟢 Guardian SaaS is running.")
+    await update.message.reply_text("🛡️ Guardian SaaS is running.")
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ System operational.")
