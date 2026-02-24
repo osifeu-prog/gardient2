@@ -59,16 +59,16 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"```\n{ASCII_BANNER.strip()}\n```\n"
         "SLH Guardian ? Security + Ops Control\n\n"
-        "???? ??? ?-SLH Guardian.\n"
-        "????? ?????? ??????, ?????, ????? ?????, ????? ?-SaaS ???.\n\n"
-        "??????:\n"
-        "/status    ????? DB/Redis/Alembic\n"
-        "/menu      ?????\n"
-        "/whoami    ?? ???\n"
-        "/health    ??? ?????\n"
+        "Welcome to SLH Guardian.\n"
+        "Infra monitoring, ops control, and SaaS-ready foundation.\n\n"
+        "Commands:\n"
+        "/status    DB/Redis/Alembic status\n"
+        "/menu      menu\n"
+        "/whoami    who am I\n"
+        "/health    system health\n"
     )
     if is_admin(update):
-        text += "\n/admin     ??? ?????\n/vars      Vars (SET/MISSING)\n/webhook   Webhook Info\n/diag      ???????????\n/pingdb    ????? DB latency\n/pingredis ????? Redis latency\n"
+        text += "\n/admin     admin report\n/vars      Vars (SET/MISSING)\n/webhook   Webhook Info\n/diag      diagnostics\n/pingdb    DB latency\n/pingredis Redis latency\n"
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -85,7 +85,7 @@ async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lines = ["?? ????? ??????:", "/start", "/status", "/menu", "/whoami", "/health"]
+    lines = ["?? ????? Commands:", "/start", "/status", "/menu", "/whoami", "/health"]
     if is_admin(update):
         lines += ["", "?? ?????? ?????:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
     await update.message.reply_text("\n".join(lines))
@@ -104,7 +104,7 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def vars_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("? ??? ?? ?????.")
+        await update.message.reply_text("? Access denied.")
         return
     def mask(v): return "SET" if v else "MISSING"
     lines = [
@@ -123,7 +123,7 @@ async def vars_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def webhookinfo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("? ??? ?? ?????.")
+        await update.message.reply_text("? Access denied.")
         return
     import httpx
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getWebhookInfo"
@@ -141,7 +141,7 @@ async def webhookinfo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def diag_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("? ??? ?? ?????.")
+        await update.message.reply_text("? Access denied.")
         return
     sha = _git_sha()
     await update.message.reply_text("\n".join([
@@ -155,7 +155,7 @@ async def diag_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def pingdb_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("? ??? ?? ?????.")
+        await update.message.reply_text("? Access denied.")
         return
     t0 = time.perf_counter()
     ok = True
@@ -170,7 +170,7 @@ async def pingdb_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("? ??? ?? ?????.")
+        await update.message.reply_text("? Access denied.")
         return
     t0 = time.perf_counter()
     ok = True
@@ -185,7 +185,7 @@ async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("? ??? ?? ?????.")
+        await update.message.reply_text("? Access denied.")
         return
     await update.message.reply_text("?? BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
