@@ -72,6 +72,14 @@ LAT = Histogram(
     registry=REGISTRY,
 )
 
+
+BOT_CMDS = Counter(
+    "bot_commands_total",
+    "Bot commands total",
+    ["cmd"],
+    registry=REGISTRY,
+)
+
 ptb_app = build_application()
 
 def uptime_s() -> int:
@@ -142,6 +150,18 @@ async def metrics():
 @app.post("/tg/webhook")
 async def tg_webhook(request: Request):
     payload = await request.json()
+    
+    # lightweight command counter
+    try:
+        msg = payload.get("message") or payload.get("edited_message") or {}
+        text = (msg.get("text") or "").strip()
+        if text.startswith("/"):
+            cmd = text.split()[0].split("@")[0].lstrip("/")
+            if cmd:
+                BOT_CMDS.labels(cmd=cmd).inc()
+    except Exception:
+        pass
+
     update = Update.de_json(payload, ptb_app.bot)
     await ptb_app.process_update(update)
     return {"ok": True}
