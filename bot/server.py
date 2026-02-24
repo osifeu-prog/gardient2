@@ -124,12 +124,19 @@ async def readyz():
 
 @app.get("/snapshot")
 async def snapshot():
-    # lightweight JSON snapshot for ops
+    import datetime
+    v = await version()
+    h = await healthz()
+    r = await readyz()
     return {
         "ok": True,
-        "healthz": await healthz(),
-        "version": await version(),
-        "readyz": await readyz(),
+        "ts_utc": datetime.datetime.now(datetime.UTC).isoformat(),
+        "service": v.get("service"),
+        "git_sha": v.get("git_sha"),
+        "uptime_s": v.get("uptime_s"),
+        "healthz": h,
+        "readyz": r,
+        "webhook": "/tg/webhook",
     }
 
 @app.get("/metrics")
