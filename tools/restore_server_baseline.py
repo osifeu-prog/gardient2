@@ -1,4 +1,6 @@
-import logging
+from pathlib import Path
+
+server = """import logging
 import os
 import time
 from contextlib import asynccontextmanager
@@ -115,3 +117,7 @@ async def tg_webhook(request: Request):
     update = Update.de_json(payload, ptb_app.bot)
     await ptb_app.process_update(update)
     return {"ok": True}
+"""
+
+Path("bot/server.py").write_text(server.replace("\\r\\n", "\\n"), encoding="utf-8")
+print("OK: rewrote bot/server.py (stable baseline)")
