@@ -102,8 +102,16 @@ async def version():
 
 @app.get("/readyz")
 async def readyz():
-    # keep it simple+stable for now
-    return {"ok": True}
+    t0 = time.perf_counter()
+    try:
+        from bot.infrastructure import runtime_report
+        _ = await runtime_report(full=False)
+        return {"ok": True, "elapsed_ms": int((time.perf_counter() - t0) * 1000)}
+    except Exception as e:
+        return JSONResponse(
+            {"ok": False, "elapsed_ms": int((time.perf_counter() - t0) * 1000), "error": f"{type(e).__name__}: {e}"},
+            status_code=503,
+        )
 
 @app.get("/metrics")
 async def metrics():
