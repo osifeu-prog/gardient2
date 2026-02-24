@@ -20,14 +20,10 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     env_file:
-      - ../.env
+      - ../.env.local
     environment:
       PYTHONPATH: /app
-      ENV: 
-      MODE: 
-      ADMIN_CHAT_ID: 
-      BOT_TOKEN: ${BOT_TOKEN}
-      REDIS_URL: ${REDIS_URL}
+    depends_on:
       - db
       - redis
     command: ["python","-m","bot.main"]
@@ -37,11 +33,9 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     env_file:
-      - ../.env
+      - ../.env.local
     environment:
       PYTHONPATH: /app
-      ENV: 
-      MODE: 
     depends_on:
       - db
       - redis

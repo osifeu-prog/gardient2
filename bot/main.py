@@ -1,9 +1,12 @@
-﻿import logging
+import os
+import logging
+from urllib.parse import urlparse
+
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegram.error import Conflict
 
-from bot.config import BOT_TOKEN, ENV, MODE, ADMIN_CHAT_ID
+from bot.config import BOT_TOKEN, ENV, MODE, ADMIN_CHAT_ID, WEBHOOK_URL
 from bot.infrastructure import init_infrastructure, runtime_report
 
 logging.basicConfig(
@@ -11,7 +14,6 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-# reduce noise in production
 if ENV in ("prod", "production"):
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -35,11 +37,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "מערכת לניטור תשתיות, אבטחה, ניהול תפעול, והכנה ל-SaaS מלא.\n\n"
         "פקודות:\n"
         "/status  סטטוס DB/Redis/Alembic\n"
-        "/menu  תפריט\n"
+        "/menu    תפריט\n"
+        "/whoami  מי אני\n"
     )
     if is_admin(update):
         text += "\n/admin  דוח אדמין\n"
     await update.message.reply_text(text)
+
+async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    u = update.effective_user
+    c = update.effective_chat
+    lines = [
+        "👤 WHOAMI",
+        f"user_id: {u.id if u else None}",
+        f"username: @{u.username}" if u and u.username else "username: (none)",
+        f"chat_id: {c.id if c else None}",
+        f"chat_type: {c.type if c else None}",
+        f"is_admin_chat: {is_admin(update)}",
+    ]
+    await update.message.reply_text("\n".join(lines))
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = [
@@ -47,6 +63,7 @@ async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/start",
         "/status",
         "/menu",
+        "/whoami",
     ]
     if is_admin(update):
         lines += ["", "🛠 אדמין:", "/admin"]
@@ -57,32 +74,29 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין הרשאות אדמין.")
+        await update.message.reply_text("⛔ אין הרשאה.")
         return
     await update.message.reply_text("🚀 BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
-
-async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id if update.effective_chat else None
-    user_id = update.effective_user.id if update.effective_user else None
-    username = update.effective_user.username if update.effective_user else None
-    await update.message.reply_text(
-        "👤 whoami\n"
-        f"chat_id: {chat_id}\n"
-        f"user_id: {user_id}\n"
-        f"username: @{username}\n"
-        f"is_admin: {is_admin(update)}"
-    )
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     err = context.error
     logging.getLogger(__name__).exception("Unhandled error", exc_info=err)
     if isinstance(err, Conflict):
-        logging.getLogger(__name__).error("409 Conflict: another instance is polling. Ensure only one instance OR switch to webhook mode.")
+        logging.getLogger(__name__).error(
+            "409 Conflict: another instance is polling. Switch to webhook mode or ensure single instance."
+        )
 
 async def post_init(app):
     await init_infrastructure()
     if ADMIN_CHAT_ID:
-        await app.bot.send_message(chat_id=int(ADMIN_CHAT_ID), text="🚀 BOOT REPORT\n\n" + await runtime_report(full=True))
+        await app.bot.send_message(
+            chat_id=int(ADMIN_CHAT_ID),
+            text="🚀 BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True),
+        )
+
+def _parse_webhook_path(url: str) -> str:
+    p = urlparse(url)
+    return p.path.lstrip("/") or "tg/webhook"
 
 def main():
     if not BOT_TOKEN:
@@ -99,13 +113,30 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu_cmd))
     app.add_handler(CommandHandler("status", status_cmd))
+    app.add_handler(CommandHandler("whoami", whoami))
     app.add_handler(CommandHandler("admin", admin_cmd))
 
     print("Guardian SaaS started")
 
-    # keep polling for now; later we can add webhook mode
-    app.run_polling()
+    mode = (MODE or "polling").lower()
+
+    if mode == "webhook":
+        if not WEBHOOK_URL:
+            raise ValueError("WEBHOOK_URL not set for webhook mode")
+
+        listen = "0.0.0.0"
+        port = int(os.getenv("PORT", "8080"))
+        url_path = _parse_webhook_path(WEBHOOK_URL)
+
+        app.run_webhook(
+            listen=listen,
+            port=port,
+            url_path=url_path,
+            webhook_url=WEBHOOK_URL,
+            drop_pending_updates=True,
+        )
+    else:
+        app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
-
