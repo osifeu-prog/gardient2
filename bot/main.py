@@ -96,8 +96,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "start")
     text = (
         f"```\n{ASCII_BANNER.strip()}\n```\n"
-        "SLH Guardian — Security + Ops Control\n\n"
-        "ברוך הבא ל-SLH Guardian.\n"
+        "SLH Security + Ops Control\n\n"
+        "ברוך הבא ל-.\n"
         "מערכת לניטור תשתיות, גיבוי, ניהול תפעול, והכנה ל-SaaS מלא.\n\n"
         "פקודות:\n"
         "/status    סטטוס DB/Redis/Alembic\n"
