@@ -192,12 +192,15 @@ async def snapshot_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Access denied.")
         return
 
+    import httpx  # local import to avoid NameError
+
     base = "https://gardient2-production.up.railway.app"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             version = (await client.get(f"{base}/version")).text.strip()
             healthz = (await client.get(f"{base}/healthz")).text.strip()
             readyz  = (await client.get(f"{base}/readyz")).text.strip()
+            snap    = (await client.get(f"{base}/snapshot")).text.strip()
 
         msg = "\n".join([
             "SNAPSHOT",
@@ -206,11 +209,11 @@ async def snapshot_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"/version: {version}",
             f"/healthz: {healthz}",
             f"/readyz:  {readyz}",
+            f"/snapshot: {snap}",
         ])
         await update.message.reply_text(msg)
     except Exception as e:
         await update.message.reply_text(f"snapshot error: {type(e).__name__}: {e}")
-
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
