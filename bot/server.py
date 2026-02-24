@@ -14,12 +14,7 @@ from bot.telemetry import log_json, exc_to_str
 APP_START = time.time()
 
 REQS = Counter("http_requests_total", "HTTP requests total", ["path", "method", "status"])
-LAT = Histogram(
-    "http_request_latency_ms",
-    "HTTP request latency ms",
-    ["path", "method"],
-    buckets=(5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000),
-)
+LAT = Histogram("http_request_latency_ms", "HTTP request latency ms", ["path", "method"], buckets=(5,10,25,50,100,250,500,1000,2000,5000))
 
 app = FastAPI()
 ptb_app = build_application()

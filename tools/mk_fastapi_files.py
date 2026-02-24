@@ -3,12 +3,10 @@ from pathlib import Path
 def write(path: str, content: str):
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    # normalize LF
     content = content.replace("\r\n", "\n")
-    # UTF-8 WITHOUT BOM:
     p.write_text(content, encoding="utf-8", newline="\n")
 
-telemetry = """import json
+write("bot/telemetry.py", """import json
 import logging
 import time
 import traceback
@@ -42,9 +40,9 @@ def update_brief(update: Any) -> Dict[str, Any]:
         }
     except Exception:
         return {}
-"""
+""")
 
-app_factory = """import logging
+write("bot/app_factory.py", """import logging
 import os
 import time
 from typing import Callable, Awaitable
@@ -252,7 +250,6 @@ def build_application():
         raise ValueError("BOT_TOKEN not set")
     app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
     app.add_error_handler(error_handler)
-
     app.add_handler(CommandHandler("start", with_latency("start", start_cmd)))
     app.add_handler(CommandHandler("menu", with_latency("menu", menu_cmd)))
     app.add_handler(CommandHandler("status", with_latency("status", status_cmd)))
@@ -265,9 +262,9 @@ def build_application():
     app.add_handler(CommandHandler("whoami", with_latency("whoami", whoami_cmd)))
     app.add_handler(CommandHandler("admin", with_latency("admin", admin_cmd)))
     return app
-"""
+""")
 
-server = """import logging
+write("bot/server.py", """import logging
 import os
 import time
 
@@ -283,12 +280,7 @@ from bot.telemetry import log_json, exc_to_str
 APP_START = time.time()
 
 REQS = Counter("http_requests_total", "HTTP requests total", ["path", "method", "status"])
-LAT = Histogram(
-    "http_request_latency_ms",
-    "HTTP request latency ms",
-    ["path", "method"],
-    buckets=(5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000),
-)
+LAT = Histogram("http_request_latency_ms", "HTTP request latency ms", ["path", "method"], buckets=(5,10,25,50,100,250,500,1000,2000,5000))
 
 app = FastAPI()
 ptb_app = build_application()
@@ -370,10 +362,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-"""
+""")
 
-write("bot/telemetry.py", telemetry)
-write("bot/app_factory.py", app_factory)
-write("bot/server.py", server)
-
-print("OK: wrote bot/telemetry.py, bot/app_factory.py, bot/server.py (utf-8 no bom)")
+print("OK: wrote FastAPI files")

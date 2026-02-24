@@ -206,7 +206,6 @@ def build_application():
         raise ValueError("BOT_TOKEN not set")
     app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
     app.add_error_handler(error_handler)
-
     app.add_handler(CommandHandler("start", with_latency("start", start_cmd)))
     app.add_handler(CommandHandler("menu", with_latency("menu", menu_cmd)))
     app.add_handler(CommandHandler("status", with_latency("status", status_cmd)))
