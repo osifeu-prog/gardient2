@@ -1,10 +1,6 @@
 from pathlib import Path
 
-p = Path("bot/server.py")
-s = p.read_text(encoding="utf-8").replace("\r\n","\n")
-
-# Replace entire file with a safe version (no duplicated metrics, lifespan, no uvicorn import-string recursion)
-p.write_text("""import logging
+content = """import logging
 import os
 import time
 from contextlib import asynccontextmanager
@@ -20,7 +16,6 @@ from bot.telemetry import log_json, exc_to_str
 
 APP_START = time.time()
 
-# Use a dedicated registry to avoid duplicate registration across imports
 REGISTRY = CollectorRegistry()
 
 REQS = Counter(
@@ -52,14 +47,12 @@ def git_sha() -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup
     await ptb_app.initialize()
     await ptb_app.start()
     log_json(logging.INFO, "fastapi_startup", uptime_s=uptime_s(), git_sha=(git_sha()[:12] if git_sha() else None))
     try:
         yield
     finally:
-        # shutdown
         await ptb_app.stop()
         await ptb_app.shutdown()
         log_json(logging.INFO, "fastapi_shutdown")
@@ -112,6 +105,9 @@ async def tg_webhook(request: Request):
     update = Update.de_json(payload, ptb_app.bot)
     await ptb_app.process_update(update)
     return {"ok": True}
-""", encoding="utf-8", newline="\\n")
+"""
 
-print("OK: bot/server.py replaced with safe FastAPI+Prometheus registry")
+# Normalize LF and write without any newline arg weirdness
+content = content.replace("\\r\\n", "\\n")
+Path("bot/server.py").write_text(content, encoding="utf-8")
+print("OK: wrote bot/server.py safely")
