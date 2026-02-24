@@ -186,6 +186,32 @@ async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
+
+async def snapshot_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update):
+        await update.message.reply_text("Access denied.")
+        return
+
+    base = "https://gardient2-production.up.railway.app"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            version = (await client.get(f"{base}/version")).text.strip()
+            healthz = (await client.get(f"{base}/healthz")).text.strip()
+            readyz  = (await client.get(f"{base}/readyz")).text.strip()
+
+        msg = "\n".join([
+            "SNAPSHOT",
+            f"base: {base}",
+            "",
+            f"/version: {version}",
+            f"/healthz: {healthz}",
+            f"/readyz:  {readyz}",
+        ])
+        await update.message.reply_text(msg)
+    except Exception as e:
+        await update.message.reply_text(f"snapshot error: {type(e).__name__}: {e}")
+
+
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         await update.message.reply_text("? Access denied.")
@@ -219,5 +245,6 @@ def build_application():
     app.add_handler(CommandHandler("pingdb", with_latency("pingdb", pingdb_cmd)))
     app.add_handler(CommandHandler("pingredis", with_latency("pingredis", pingredis_cmd)))
     app.add_handler(CommandHandler("whoami", with_latency("whoami", whoami_cmd)))
+    app.add_handler(CommandHandler("snapshot", with_latency("snapshot", snapshot_cmd)))
     app.add_handler(CommandHandler("admin", with_latency("admin", admin_cmd)))
     return app
