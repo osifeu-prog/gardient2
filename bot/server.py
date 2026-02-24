@@ -1,4 +1,3 @@
-print("FASTAPI_BOOT_TOP", flush=True)
 
 import logging
 import os
@@ -47,15 +46,10 @@ def git_sha() -> str:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    print("LIFESPAN: before init_infrastructure", flush=True)
-    await init_infrastructure()
-    print("LIFESPAN: after init_infrastructure", flush=True)
-    print("LIFESPAN: before initialize", flush=True)
-    await ptb_app.initialize()
-    print("LIFESPAN: after initialize", flush=True)
-    await ptb_app.start()
-    print("LIFESPAN: after start", flush=True)
-    log_json(logging.INFO, "fastapi_startup", uptime_s=uptime_s(), git_sha=(git_sha()[:12] if git_sha() else None))
+        await init_infrastructure()
+            await ptb_app.initialize()
+        await ptb_app.start()
+        log_json(logging.INFO, "fastapi_startup", uptime_s=uptime_s(), git_sha=(git_sha()[:12] if git_sha() else None))
     try:
         yield
     finally:
