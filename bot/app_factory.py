@@ -85,9 +85,9 @@ async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lines = ["?? ????? Commands:", "/start", "/status", "/menu", "/whoami", "/health"]
+    lines = ["Commands:", "/start", "/status", "/menu", "/whoami", "/health"]
     if is_admin(update):
-        lines += ["", "?? ?????? ?????:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
+        lines += ["", "Admin:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
     await update.message.reply_text("\n".join(lines))
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -95,7 +95,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sha = _git_sha()
-    lines = ["?? HEALTH", f"ENV: {ENV}", f"MODE: {MODE}", f"uptime_s: {_uptime_s()}"]
+    lines = ["HEALTH", f"ENV: {ENV}", f"MODE: {MODE}", f"uptime_s: {_uptime_s()}"]
     if sha:
         lines.append(f"git_sha: {sha[:12]}")
     if is_admin(update):
@@ -108,7 +108,7 @@ async def vars_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     def mask(v): return "SET" if v else "MISSING"
     lines = [
-        "?? VARS (SET/MISSING)",
+        "VARS (SET/MISSING)",
         f"ENV: {ENV}",
         f"MODE: {MODE}",
         f"BOT_TOKEN: {mask(BOT_TOKEN)}",
@@ -131,7 +131,7 @@ async def webhookinfo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         r = await client.get(url)
     data = r.json().get("result", {})
     lines = [
-        "?? WEBHOOK INFO",
+        "WEBHOOK INFO",
         f"url: {data.get('url') or ''}",
         f"pending_update_count: {data.get('pending_update_count')}",
         f"last_error_date: {data.get('last_error_date')}",
@@ -145,7 +145,7 @@ async def diag_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     sha = _git_sha()
     await update.message.reply_text("\n".join([
-        "?? DIAG",
+        "DIAG",
         f"env: {ENV}",
         f"mode: {MODE}",
         f"uptime_s: {_uptime_s()}",
@@ -166,7 +166,7 @@ async def pingdb_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ok = False
         err = f"{type(e).__name__}: {e}"
     dt = int((time.perf_counter() - t0) * 1000)
-    await update.message.reply_text(f"??? DB ping: {'OK' if ok else 'FAIL'} ({dt} ms){'' if not err else ' | ' + err}")
+    await update.message.reply_text(f"DB ping: {'OK' if ok else 'FAIL'} ({dt} ms){'' if not err else ' | ' + err}")
 
 async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
@@ -181,7 +181,7 @@ async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ok = False
         err = f"{type(e).__name__}: {e}"
     dt = int((time.perf_counter() - t0) * 1000)
-    await update.message.reply_text(f"?? Redis ping: {'OK' if ok else 'FAIL'} ({dt} ms){'' if not err else ' | ' + err}")
+    await update.message.reply_text(f"Redis ping: {'OK' if ok else 'FAIL'} ({dt} ms){'' if not err else ' | ' + err}")
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
