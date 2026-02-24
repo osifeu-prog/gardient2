@@ -13,6 +13,47 @@ from bot.app_factory import build_application
 from bot.infrastructure import init_infrastructure
 from bot.telemetry import log_json, exc_to_str
 
+import asyncio
+
+async def _measure_readyz():
+    """
+    Returns (ok, payload)
+    payload includes db_ms, redis_ms, errors if any.
+    """
+    payload = {"ok": True}
+    t0 = time.perf_counter()
+    db_ok = True
+    db_err = None
+    try:
+        from bot.infrastructure import check_postgres
+        await check_postgres()
+    except Exception as e:
+        db_ok = False
+        db_err = f"{type(e).__name__}: {e}"
+    payload["db_ok"] = db_ok
+    payload["db_ms"] = int((time.perf_counter() - t0) * 1000)
+    if db_err:
+        payload["db_error"] = db_err
+        payload["ok"] = False
+
+    t1 = time.perf_counter()
+    r_ok = True
+    r_err = None
+    try:
+        from bot.infrastructure import check_redis
+        await check_redis()
+    except Exception as e:
+        r_ok = False
+        r_err = f"{type(e).__name__}: {e}"
+    payload["redis_ok"] = r_ok
+    payload["redis_ms"] = int((time.perf_counter() - t1) * 1000)
+    if r_err:
+        payload["redis_error"] = r_err
+        payload["ok"] = False
+
+    return payload["ok"], payload
+
+
 APP_START = time.time()
 
 REGISTRY = CollectorRegistry()
@@ -89,12 +130,10 @@ async def version():
 
 @app.get("/readyz")
 async def readyz():
-    try:
-        from bot.infrastructure import runtime_report
-        _ = await runtime_report(full=False)
-        return {"ok": True}
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": f"{type(e).__name__}: {e}"}, status_code=503)
+    ok, payload = await _measure_readyz()
+    if ok:
+        return payload
+    return JSONResponse(payload, status_code=503)
 
 @app.get("/metrics")
 async def metrics():
