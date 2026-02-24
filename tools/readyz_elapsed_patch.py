@@ -1,10 +1,7 @@
 from pathlib import Path
 import re
-
 p = Path("bot/server.py")
 s = p.read_text(encoding="utf-8").replace("\r\n","\n")
-
-# Replace the simple readyz with timed runtime_report
 pattern = r'@app\.get\("/readyz"\)\nasync def readyz\(\):\n\s*# keep it simple\+stable for now\n\s*return \{"ok": True\}\n'
 replacement = '''@app.get("/readyz")
 async def readyz():
@@ -21,7 +18,6 @@ async def readyz():
 '''
 s, n = re.subn(pattern, replacement, s, count=1)
 if n != 1:
-    raise SystemExit("ERROR: readyz block not found (unexpected server.py format)")
-
+    raise SystemExit("ERROR: readyz block not found")
 p.write_text(s, encoding="utf-8")
-print("OK: readyz now returns elapsed_ms + error on failure")
+print("OK: readyz elapsed_ms added")
