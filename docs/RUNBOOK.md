@@ -1,30 +1,25 @@
-﻿# SLH Guardian (gardient2) — RUNBOOK
+# SLH Guardian (gardient2) ? RUNBOOK
 
 ## Production
 - Domain: https://gardient2-production.up.railway.app
 - Webhook: https://gardient2-production.up.railway.app/tg/webhook
-- Mode: webhook-only
+- Mode: webhook-only (Telegram -> POST /tg/webhook)
 
 ## Quick checks
-- GET /healthz  -> should return ok + uptime_s + git_sha
-- GET /version  -> should return service + git_sha + uptime_s
+- GET /healthz  -> ok + uptime_s + git_sha
+- GET /version  -> service + git_sha + uptime_s
+- GET /readyz   -> ok + elapsed_ms
 - GET /metrics  -> Prometheus metrics text
-- Bot: /start, /status, /admin, /webhook
+- Bot: /start /status /admin /webhook
 
 ## If bot doesn't respond
-1) Check webhook:
-   - /webhook command in bot
-   - Telegram getWebhookInfo should show url=/tg/webhook and no last_error_message
-2) Check Railway Deploy Logs:
-   - Uvicorn running on 0.0.0.0:8080
-   - POST /tg/webhook 200
-3) Check healthz:
-   - GET /healthz must be 200
+1) Bot: /webhook should show correct URL and no last_error_message.
+2) Railway logs: look for `POST /tg/webhook 200`.
+3) GET /healthz must be 200.
 
 ## If deploy stuck on "Deploying"
 Set Railway Healthcheck Path = /healthz
 
-## Rotation / secrets
+## Secrets
 - BOT_TOKEN must never be committed.
-- If token leaked -> revoke and update Railway variables.
-
+- If leaked -> revoke in BotFather and update Railway vars.

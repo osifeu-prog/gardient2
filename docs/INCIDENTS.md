@@ -1,9 +1,8 @@
-﻿# Incidents / Notes
+# Incidents / Notes
 
-Keep short notes of notable failures and the fix:
-- Encoding / mojibake in banner & Hebrew text -> moved banner to assets/banner.txt
-- Webhook 409 conflicts -> switched to webhook-only
-- FastAPI missing deps -> requirements.txt updated
-- Prometheus duplicate timeseries -> dedicated registry (CollectorRegistry)
-- Indentation/syntax regressions -> restored server baseline
-
+- Encoding/mojibake issues -> moved banner to assets/banner.txt, UI switched to English-only.
+- Polling 409 conflicts -> webhook-only mode.
+- FastAPI missing deps -> requirements updated.
+- Prometheus duplicate timeseries -> dedicated CollectorRegistry.
+- Uvicorn serving -> Dockerfile CMD uses uvicorn bot.server:app.
+- Indentation/syntax regressions -> restored stable server baseline.

@@ -1,14 +1,13 @@
-﻿# Architecture
+# Architecture
 
 ## Components
-- FastAPI (bot/server.py) serves:
-  - POST /tg/webhook (Telegram updates)
-  - GET /healthz, /version, /readyz, /metrics
-- python-telegram-bot (PTB) Application created in bot/app_factory.py
-- Infrastructure checks in bot/infrastructure.py:
-  - Postgres
-  - Redis
-- Alembic migrations under migrations/
+- FastAPI + Uvicorn (bot/server.py)
+  - POST /tg/webhook
+  - GET /healthz /version /readyz /metrics
+- python-telegram-bot Application (bot/app_factory.py)
+- Infrastructure (bot/infrastructure.py)
+  - Postgres / Redis checks + runtime_report
+- Alembic migrations: migrations/
 
 ## Runtime flow
 1) Uvicorn starts FastAPI app (Dockerfile CMD).
@@ -16,9 +15,9 @@
    - init_infrastructure()
    - ptb_app.initialize()
    - ptb_app.start()
-3) Telegram sends updates -> POST /tg/webhook -> Update.de_json -> ptb_app.process_update(update)
+3) Telegram -> POST /tg/webhook -> Update.de_json -> ptb_app.process_update(update)
 
 ## Observability
-- /metrics: Prometheus metrics
-- Railway logs: Uvicorn access logs + app logs
-
+- HTTP: /healthz /readyz /metrics
+- Bot: /vars /webhook /diag
+- Railway logs: uvicorn access logs + app logs

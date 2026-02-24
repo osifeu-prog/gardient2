@@ -1,4 +1,4 @@
-﻿# Endpoints & Bot Commands
+# Endpoints & Commands
 
 ## HTTP Endpoints (FastAPI)
 - GET /healthz
@@ -6,6 +6,9 @@
 - GET /readyz
 - GET /metrics
 - POST /tg/webhook
+
+Notes:
+- GET /tg/webhook returns 405 (expected). Telegram uses POST.
 
 ## Bot Commands (Telegram)
 - /start
@@ -19,7 +22,3 @@
 - /diag (admin only)
 - /pingdb (admin only)
 - /pingredis (admin only)
-
-Notes:
-- /tg/webhook returns 405 for GET (expected). Telegram uses POST.
-
