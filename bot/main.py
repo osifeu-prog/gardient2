@@ -18,12 +18,12 @@ if ENV in ("prod", "production"):
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
 ASCII_BANNER = r"""
-███████╗██╗     ██╗  ██╗
-██╔════╝██║     ██║  ██║
-███████╗██║     ███████║
-╚════██║██║     ██╔══██║
-███████║███████╗██║  ██║
-╚══════╝╚══════╝╚═╝  ╚═╝
+â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—     â–ˆâ–ˆâ•—  â–ˆâ–ˆâ•—
+â–ˆâ–ˆâ•”â•گâ•گâ•گâ•گâ•‌â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘
+â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘
+â•ڑâ•گâ•گâ•گâ•گâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•”â•گâ•گâ–ˆâ–ˆâ•‘
+â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘
+â•ڑâ•گâ•گâ•گâ•گâ•گâ•گâ•‌â•ڑâ•گâ•گâ•گâ•گâ•گâ•گâ•‌â•ڑâ•گâ•‌  â•ڑâ•گâ•‌
 """
 
 def is_admin(update: Update) -> bool:
@@ -31,23 +31,23 @@ def is_admin(update: Update) -> bool:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        f"```\n{ASCII_BANNER}\n```\n"
-        "SLH Guardian — Security + Ops Control\n\n"
-        "ברוך הבא ל-SLH Guardian.\n"
-        "מערכת לניטור תשתיות, אבטחה, ניהול תפעול, והכנה ל-SaaS מלא.\n\n"
-        "פקודות:\n"
-        "/status  סטטוס DB/Redis/Alembic\n"
-        "/menu    תפריט\n"
-        "/whoami  מי אני\n"
+        f"```\n{ASCII_BANNER.strip()}\n```\n"
+        "SLH Guardian â€” Security + Ops Control\n\n"
+        "×‘×¨×•×ڑ ×”×‘×گ ×œ-SLH Guardian.\n"
+        "×‍×¢×¨×›×ھ ×œ× ×™×ک×•×¨ ×ھ×©×ھ×™×•×ھ, ×گ×‘×ک×—×”, × ×™×”×•×œ ×ھ×¤×¢×•×œ, ×•×”×›× ×” ×œ-SaaS ×‍×œ×گ.\n\n"
+        "×¤×§×•×“×•×ھ:\n"
+        "/status  ×،×ک×ک×•×، DB/Redis/Alembic\n"
+        "/menu    ×ھ×¤×¨×™×ک\n"
+        "/whoami  ×‍×™ ×گ× ×™\n"
     )
     if is_admin(update):
-        text += "\n/admin  דוח אדמין\n"
+        text += "\n/admin  ×“×•×— ×گ×“×‍×™×ں\n"
     await update.message.reply_text(text, parse_mode="Markdown")
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     c = update.effective_chat
     lines = [
-        "ًں‘¤ WHOAMI",
+        "ظ‹ع؛â€کآ¤ WHOAMI",
         f"user_id: {u.id if u else None}",
         f"username: @{u.username}" if u and u.username else "username: (none)",
         f"chat_id: {c.id if c else None}",
@@ -58,14 +58,14 @@ async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = [
-        "ًں§­ ×ھ×¤×¨×™×ک ×¤×§×•×“×•×ھ:",
+        "ظ‹ع؛آ§آ­ أ—ع¾أ—آ¤أ—آ¨أ—â„¢أ—ع© أ—آ¤أ—آ§أ—â€¢أ—â€œأ—â€¢أ—ع¾:",
         "/start",
         "/status",
         "/menu",
         "/whoami",
     ]
     if is_admin(update):
-        lines += ["", "ًں›  ×گ×“×‍×™×ں:", "/admin"]
+        lines += ["", "ظ‹ع؛â€؛آ  أ—ع¯أ—â€œأ—â€چأ—â„¢أ—ع؛:", "/admin"]
     await update.message.reply_text("\n".join(lines))
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -73,9 +73,9 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("â›” ×گ×™×ں ×”×¨×©×گ×”.")
+        await update.message.reply_text("أ¢â€؛â€‌ أ—ع¯أ—â„¢أ—ع؛ أ—â€‌أ—آ¨أ—آ©أ—ع¯أ—â€‌.")
         return
-    await update.message.reply_text("ًںڑ€ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
+    await update.message.reply_text("ظ‹ع؛ع‘â‚¬ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     err = context.error
@@ -90,7 +90,7 @@ async def post_init(app):
     if ADMIN_CHAT_ID:
         await app.bot.send_message(
             chat_id=int(ADMIN_CHAT_ID),
-            text="ًںڑ€ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True),
+            text="ظ‹ع؛ع‘â‚¬ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True),
         )
 
 def _parse_webhook_path(url: str) -> str:

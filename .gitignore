@@ -16,3 +16,5 @@ LOG.txt
 .env.example
 .env.*
 !.env.example
+_diag/
+migrations.BAK_*/
