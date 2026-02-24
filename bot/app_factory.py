@@ -75,7 +75,7 @@ async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     c = update.effective_chat
     lines = [
-        "?? WHOAMI",
+        "WHOAMI",
         f"user_id: {u.id if u else None}",
         f"username: @{u.username}" if u and u.username else "username: (none)",
         f"chat_id: {c.id if c else None}",
