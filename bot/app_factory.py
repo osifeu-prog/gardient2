@@ -183,6 +183,27 @@ async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     dt = int((time.perf_counter() - t0) * 1000)
     await update.message.reply_text(f"Redis ping: {'OK' if ok else 'FAIL'} ({dt} ms){'' if not err else ' | ' + err}")
 
+
+async def snapshot_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update):
+        await update.message.reply_text("? Access denied.")
+        return
+
+    base = "https://gardient2-production.up.railway.app"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        healthz = (await client.get(f"{base}/healthz")).text.strip()
+        version = (await client.get(f"{base}/version")).text.strip()
+        readyz  = (await client.get(f"{base}/readyz")).text.strip()
+
+    msg = (
+        "?? SNAPSHOT\n"
+        f"base: {base}\n\n"
+        f"/version: {version}\n"
+        f"/healthz: {healthz}\n"
+        f"/readyz: {readyz}\n"
+    )
+    await update.message.reply_text(msg)
+
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         await update.message.reply_text("? Access denied.")
@@ -216,5 +237,6 @@ def build_application():
     app.add_handler(CommandHandler("pingdb", with_latency("pingdb", pingdb_cmd)))
     app.add_handler(CommandHandler("pingredis", with_latency("pingredis", pingredis_cmd)))
     app.add_handler(CommandHandler("whoami", with_latency("whoami", whoami_cmd)))
+    app.add_handler(CommandHandler("snapshot", with_latency("snapshot", snapshot_cmd)))
     app.add_handler(CommandHandler("admin", with_latency("admin", admin_cmd)))
     return app
