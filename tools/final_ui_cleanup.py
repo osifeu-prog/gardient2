@@ -13,4 +13,4 @@ for a,b in repls.items():
     s = s.replace(a,b)
 
 p.write_text(s, encoding="utf-8")
-print("OK: cleaned remaining markers")
+print("OK: final UI cleanup")
