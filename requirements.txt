@@ -29,6 +29,6 @@ tzdata==2025.3
 tzlocal==5.3.1
 Werkzeug==3.1.6
 alembic==1.13.2
-
-# __TEMP_TOUCH__
-
+fastapi==0.115.6
+uvicorn==0.34.0
+prometheus-client==0.21.1
