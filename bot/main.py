@@ -18,13 +18,12 @@ if ENV in ("prod", "production"):
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
 ASCII_BANNER = r"""
-  ____  _     _   _
- / ___|| |   | | | |
- \___ \| |   | |_| |
-  ___) | |___|  _  |
- |____/|_____|_| |_|
-
-SLH Guardian — Security + Ops Control
+███████╗██╗     ██╗  ██╗
+██╔════╝██║     ██║  ██║
+███████╗██║     ███████║
+╚════██║██║     ██╔══██║
+███████║███████╗██║  ██║
+╚══════╝╚══════╝╚═╝  ╚═╝
 """
 
 def is_admin(update: Update) -> bool:
@@ -32,7 +31,8 @@ def is_admin(update: Update) -> bool:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        f"{ASCII_BANNER}\n"
+        f"```\n{ASCII_BANNER}\n```\n"
+        "SLH Guardian — Security + Ops Control\n\n"
         "ברוך הבא ל-SLH Guardian.\n"
         "מערכת לניטור תשתיות, אבטחה, ניהול תפעול, והכנה ל-SaaS מלא.\n\n"
         "פקודות:\n"
@@ -42,13 +42,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     if is_admin(update):
         text += "\n/admin  דוח אדמין\n"
-    await update.message.reply_text(text)
-
+    await update.message.reply_text(text, parse_mode="Markdown")
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     c = update.effective_chat
     lines = [
-        "👤 WHOAMI",
+        "ًں‘¤ WHOAMI",
         f"user_id: {u.id if u else None}",
         f"username: @{u.username}" if u and u.username else "username: (none)",
         f"chat_id: {c.id if c else None}",
@@ -59,14 +58,14 @@ async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = [
-        "🧭 תפריט פקודות:",
+        "ًں§­ ×ھ×¤×¨×™×ک ×¤×§×•×“×•×ھ:",
         "/start",
         "/status",
         "/menu",
         "/whoami",
     ]
     if is_admin(update):
-        lines += ["", "🛠 אדמין:", "/admin"]
+        lines += ["", "ًں›  ×گ×“×‍×™×ں:", "/admin"]
     await update.message.reply_text("\n".join(lines))
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -74,9 +73,9 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין הרשאה.")
+        await update.message.reply_text("â›” ×گ×™×ں ×”×¨×©×گ×”.")
         return
-    await update.message.reply_text("🚀 BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
+    await update.message.reply_text("ًںڑ€ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     err = context.error
@@ -91,7 +90,7 @@ async def post_init(app):
     if ADMIN_CHAT_ID:
         await app.bot.send_message(
             chat_id=int(ADMIN_CHAT_ID),
-            text="🚀 BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True),
+            text="ًںڑ€ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True),
         )
 
 def _parse_webhook_path(url: str) -> str:

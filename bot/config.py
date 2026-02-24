@@ -1,4 +1,4 @@
-﻿import os
+import os
 
 # Core
 ENV = os.getenv("ENV", "production").lower()

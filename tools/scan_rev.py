@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 needle = b"20260211_215612_manh_payments_v1"
 root = Path(r"D:\")

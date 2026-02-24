@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 $files = git diff --cached --name-only --diff-filter=ACMR
 $bad = @()
 
