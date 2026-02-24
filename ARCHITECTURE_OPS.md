@@ -1,4 +1,4 @@
-﻿# Guardian Ops Roadmap
+# Guardian Ops Roadmap
 
 ## Current (Telegram Ops)
 - /health /vars /webhook /diag /pingdb /pingredis
