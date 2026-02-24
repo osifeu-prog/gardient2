@@ -121,6 +121,17 @@ async def readyz():
             status_code=503,
         )
 
+
+@app.get("/snapshot")
+async def snapshot():
+    # lightweight JSON snapshot for ops
+    return {
+        "ok": True,
+        "healthz": await healthz(),
+        "version": await version(),
+        "readyz": await readyz(),
+    }
+
 @app.get("/metrics")
 async def metrics():
     return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
