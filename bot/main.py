@@ -1,6 +1,7 @@
 ﻿import os
 import logging
 import time
+from pathlib import Path
 from collections import deque
 from urllib.parse import urlparse
 
@@ -29,16 +30,16 @@ logger = logging.getLogger(__name__)
 if ENV in ("prod", "production"):
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-ASCII_BANNER = r"""
+ASCII_BANNER = ""
+try:
+    ASCII_BANNER = Path("assets/banner.txt").read_text(encoding="utf-8")
+except Exception:
+    ASCII_BANNER = r"""
 =====================================
-    '███████╗██╗      ██╗  ██╗\n'
-    '██╔════╝██║      ██║  ██║\n'
-    '███████╗██║█████╗███████║\n'
-    '╚════██║██║╚════╝██╔══██║\n'
-    '███████║███████╗ ██║  ██║\n'
-    '╚══════╝╚══════╝ ╚═╝  ╚═╝\n'
+==           SLH  GUARDIAN          ==
 =====================================
 """
+
 
 def is_admin(update: Update) -> bool:
     return bool(ADMIN_CHAT_ID) and str(update.effective_chat.id) == str(ADMIN_CHAT_ID)
