@@ -73,3 +73,13 @@ async def runtime_report(full: bool = False) -> str:
             lines.append(f"{k}: {'SET' if os.getenv(k) else 'MISSING'}")
 
     return "\n".join(lines)
+
+
+async def check_postgres():
+    # used by /readyz for latency measurement
+    await _check_postgres()
+
+
+async def check_redis():
+    # used by /readyz for latency measurement
+    await _check_redis()
