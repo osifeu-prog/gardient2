@@ -58,7 +58,7 @@ def with_latency(name: str, fn: Callable[[Update, ContextTypes.DEFAULT_TYPE], Aw
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"```\n{ASCII_BANNER.strip()}\n```\n"
-        "SLH Guardian ? Security + Ops Control\n\n"
+        "SLH Guardian Security + Ops Control\n\n"
         "Welcome to SLH Guardian.\n"
         "Infra monitoring, ops control, and SaaS-ready foundation.\n\n"
         "Commands:\n"
