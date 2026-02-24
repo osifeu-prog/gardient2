@@ -13,3 +13,4 @@ COPY . .
 CMD ["python", "-m", "bot.server"]
 
 
+
