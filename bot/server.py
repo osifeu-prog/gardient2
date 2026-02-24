@@ -11,6 +11,7 @@ from prometheus_client import Counter, Histogram, CollectorRegistry, generate_la
 from telegram import Update
 
 from bot.app_factory import build_application
+from bot.infrastructure import init_infrastructure
 from bot.telemetry import log_json, exc_to_str
 
 APP_START = time.time()
@@ -46,6 +47,9 @@ def git_sha() -> str:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    print("LIFESPAN: before init_infrastructure", flush=True)
+    await init_infrastructure()
+    print("LIFESPAN: after init_infrastructure", flush=True)
     print("LIFESPAN: before initialize", flush=True)
     await ptb_app.initialize()
     print("LIFESPAN: after initialize", flush=True)
