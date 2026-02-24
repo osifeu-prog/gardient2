@@ -185,9 +185,10 @@ async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
+
 async def snapshot_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
-        await update.message.reply_text("? Access denied.")
+        await update.message.reply_text("Access denied.")
         return
 
     base = "https://gardient2-production.up.railway.app"
@@ -199,7 +200,7 @@ async def snapshot_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             snap    = (await client.get(f"{base}/snapshot")).text.strip()
 
         msg = (
-            "?? SNAPSHOT
+            "SNAPSHOT
 "
             f"base: {base}
 
@@ -209,7 +210,6 @@ async def snapshot_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"/healthz: {healthz}
 "
             f"/readyz:  {readyz}
-
 "
             f"/snapshot: {snap}
 "
