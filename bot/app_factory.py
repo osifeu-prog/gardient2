@@ -68,7 +68,7 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/health    system health\n"
     )
     if is_admin(update):
-        text += "\n/admin     admin report\n/vars      Vars (SET/MISSING)\n/webhook   Webhook Info\n/diag      diagnostics\n/pingdb    DB latency\n/pingredis Redis latency\n"
+        text += "\n/admin     admin report\n/vars      Vars (SET/MISSING)\n/webhook   Webhook Info\n/diag      diagnostics\n/pingdb    DB latency\n/pingredis Redis latency\n/snapshot  snapshot\n"
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -87,7 +87,7 @@ async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = ["Commands:", "/start", "/status", "/menu", "/whoami", "/health"]
     if is_admin(update):
-        lines += ["", "Admin:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
+        lines += ["", "Admin:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis", "/snapshot"]
     await update.message.reply_text("\n".join(lines))
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
