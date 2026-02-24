@@ -1,7 +1,7 @@
 ﻿import os
 import logging
 import time
-import json
+from collections import deque
 from urllib.parse import urlparse
 
 import httpx
@@ -16,12 +16,14 @@ from bot.config import BOT_TOKEN, ENV, MODE, ADMIN_CHAT_ID, WEBHOOK_URL
 from bot.infrastructure import init_infrastructure, runtime_report
 
 START_TS = time.time()
+CMD_HISTORY = deque(maxlen=30)
 
+# Logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
 )
-
 logger = logging.getLogger(__name__)
 
 if ENV in ("prod", "production"):
@@ -45,7 +47,6 @@ def _uptime_s() -> int:
     return int(time.time() - START_TS)
 
 def _git_sha() -> str:
-    # Railway commonly sets these; fall back gracefully.
     return (
         os.getenv("RAILWAY_GIT_COMMIT_SHA")
         or os.getenv("GIT_COMMIT_SHA")
@@ -61,7 +62,6 @@ def _parse_webhook_path(url: str) -> str:
     return p.path.lstrip("/") or "tg/webhook"
 
 def _normalize_webhook_url(url: str) -> str:
-    # Ensure the URL includes the webhook path.
     if not url:
         return url
     p = urlparse(url)
@@ -73,12 +73,20 @@ async def _log_cmd(update: Update, name: str):
     try:
         u = update.effective_user
         c = update.effective_chat
+        item = {
+            "ts": int(time.time()),
+            "cmd": name,
+            "chat_id": getattr(c, "id", None),
+            "user_id": getattr(u, "id", None),
+            "username": getattr(u, "username", None),
+        }
+        CMD_HISTORY.append(item)
         logger.info(
             "cmd=%s chat_id=%s user_id=%s username=%s",
             name,
-            getattr(c, "id", None),
-            getattr(u, "id", None),
-            getattr(u, "username", None),
+            item["chat_id"],
+            item["user_id"],
+            item["username"],
         )
     except Exception:
         logger.exception("failed to log command")
@@ -91,13 +99,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "ברוך הבא ל-SLH Guardian.\n"
         "מערכת לניטור תשתיות, גיבוי, ניהול תפעול, והכנה ל-SaaS מלא.\n\n"
         "פקודות:\n"
-        "/status   סטטוס DB/Redis/Alembic\n"
-        "/menu     תפריט\n"
-        "/whoami   מי אני\n"
-        "/health   מצב מערכת\n"
+        "/status    סטטוס DB/Redis/Alembic\n"
+        "/menu      תפריט\n"
+        "/whoami    מי אני\n"
+        "/health    מצב מערכת\n"
     )
     if is_admin(update):
-        text += "\n/admin    דוח אדמין\n/vars     Vars (SET/MISSING)\n/webhook  Webhook Info\n"
+        text += (
+            "\n/admin     דוח אדמין\n"
+            "/vars      Vars (SET/MISSING)\n"
+            "/webhook   Webhook Info\n"
+            "/diag      דיאגנוסטיקה\n"
+            "/pingdb    בדיקת DB latency\n"
+            "/pingredis בדיקת Redis latency\n"
+        )
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -125,7 +140,7 @@ async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/health",
     ]
     if is_admin(update):
-        lines += ["", "🔐 פקודות אדמין:", "/admin", "/vars", "/webhook"]
+        lines += ["", "🔐 פקודות אדמין:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
     await update.message.reply_text("\n".join(lines))
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -140,10 +155,10 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"ENV: {ENV}",
         f"MODE: {MODE}",
         f"uptime_s: {_uptime_s()}",
+        f"log_level: {LOG_LEVEL}",
     ]
     if sha:
         lines.append(f"git_sha: {sha[:12]}")
-    # Show webhook target only to admin
     if is_admin(update):
         lines.append(f"webhook_url: {_normalize_webhook_url(WEBHOOK_URL) if WEBHOOK_URL else 'MISSING'}")
     await update.message.reply_text("\n".join(lines))
@@ -190,6 +205,61 @@ async def webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.exception("webhook_cmd failed")
         await update.message.reply_text(f"webhook_cmd error: {type(e).__name__}")
 
+async def diag_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _log_cmd(update, "diag")
+    if not is_admin(update):
+        await update.message.reply_text("⛔ אין לך הרשאה.")
+        return
+    sha = _git_sha()
+    lines = [
+        "🧪 DIAG",
+        f"env: {ENV}",
+        f"mode: {MODE}",
+        f"uptime_s: {_uptime_s()}",
+        f"log_level: {LOG_LEVEL}",
+        f"git_sha: {(sha[:12] if sha else '(none)')}",
+        f"webhook_url: {(_normalize_webhook_url(WEBHOOK_URL) if WEBHOOK_URL else 'MISSING')}",
+        "",
+        "last_cmds:",
+    ]
+    for item in list(CMD_HISTORY)[-10:]:
+        lines.append(f"- {item['ts']} cmd={item['cmd']} user={item.get('username')} chat_id={item.get('chat_id')}")
+    await update.message.reply_text("\n".join(lines))
+
+async def pingdb_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _log_cmd(update, "pingdb")
+    if not is_admin(update):
+        await update.message.reply_text("⛔ אין לך הרשאה.")
+        return
+    t0 = time.perf_counter()
+    ok = False
+    err = None
+    try:
+        # runtime_report already checks DB; we reuse it and time it.
+        _ = await runtime_report(full=False)
+        ok = True
+    except Exception as e:
+        err = f"{type(e).__name__}: {e}"
+    dt_ms = int((time.perf_counter() - t0) * 1000)
+    await update.message.reply_text(f"🗄️ DB ping: {'OK' if ok else 'FAIL'} ({dt_ms} ms){'' if not err else ' | ' + err}")
+
+async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _log_cmd(update, "pingredis")
+    if not is_admin(update):
+        await update.message.reply_text("⛔ אין לך הרשאה.")
+        return
+    # Same approach: time infra report (redis is included there).
+    t0 = time.perf_counter()
+    ok = False
+    err = None
+    try:
+        _ = await runtime_report(full=False)
+        ok = True
+    except Exception as e:
+        err = f"{type(e).__name__}: {e}"
+    dt_ms = int((time.perf_counter() - t0) * 1000)
+    await update.message.reply_text(f"🧠 Redis ping: {'OK' if ok else 'FAIL'} ({dt_ms} ms){'' if not err else ' | ' + err}")
+
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "admin")
     if not is_admin(update):
@@ -201,9 +271,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     err = context.error
     logger.exception("Unhandled error", exc_info=err)
     if isinstance(err, Conflict):
-        logger.error(
-            "409 Conflict: another instance is polling. Switch to webhook mode or ensure single instance."
-        )
+        logger.error("409 Conflict: another instance is polling. Switch to webhook mode or ensure single instance.")
 
 async def post_init(app):
     await init_infrastructure()
@@ -231,6 +299,9 @@ def main():
     app.add_handler(CommandHandler("health", health_cmd))
     app.add_handler(CommandHandler("vars", vars_cmd))
     app.add_handler(CommandHandler("webhook", webhook_cmd))
+    app.add_handler(CommandHandler("diag", diag_cmd))
+    app.add_handler(CommandHandler("pingdb", pingdb_cmd))
+    app.add_handler(CommandHandler("pingredis", pingredis_cmd))
     app.add_handler(CommandHandler("whoami", whoami))
     app.add_handler(CommandHandler("admin", admin_cmd))
 
@@ -245,7 +316,6 @@ def main():
         listen = "0.0.0.0"
         port = int(os.getenv("PORT", "8080"))
 
-        # Always ensure a valid path and URL
         webhook_url = _normalize_webhook_url(WEBHOOK_URL)
         url_path = _parse_webhook_path(webhook_url)
 
@@ -261,3 +331,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
