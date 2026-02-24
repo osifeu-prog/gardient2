@@ -187,7 +187,7 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         await update.message.reply_text("? Access denied.")
         return
-    await update.message.reply_text("?? BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
+    await update.message.reply_text("BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     e = context.error
@@ -199,7 +199,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 async def post_init(app):
     await init_infrastructure()
     if ADMIN_CHAT_ID:
-        await app.bot.send_message(chat_id=int(ADMIN_CHAT_ID), text="?? BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
+        await app.bot.send_message(chat_id=int(ADMIN_CHAT_ID), text="BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
 def build_application():
     if not BOT_TOKEN:
