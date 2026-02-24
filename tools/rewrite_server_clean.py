@@ -1,4 +1,6 @@
-print(\"FASTAPI_BOOT_TOP\", flush=True)
+from pathlib import Path
+
+server = """print(\\"FASTAPI_BOOT_TOP\\", flush=True)
 
 import logging
 import os
@@ -18,15 +20,15 @@ APP_START = time.time()
 REGISTRY = CollectorRegistry()
 
 REQS = Counter(
-    \"http_requests_total\",
-    \"HTTP requests total\",
-    [\"path\", \"method\", \"status\"],
+    \\"http_requests_total\\",
+    \\"HTTP requests total\\",
+    [\\"path\\", \\"method\\", \\"status\\"],
     registry=REGISTRY,
 )
 LAT = Histogram(
-    \"http_request_latency_ms\",
-    \"HTTP request latency ms\",
-    [\"path\", \"method\"],
+    \\"http_request_latency_ms\\",
+    \\"HTTP request latency ms\\",
+    [\\"path\\", \\"method\\"],
     buckets=(5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000),
     registry=REGISTRY,
 )
@@ -38,32 +40,32 @@ def uptime_s() -> int:
 
 def git_sha() -> str:
     return (
-        os.getenv(\"RAILWAY_GIT_COMMIT_SHA\")
-        or os.getenv(\"GIT_COMMIT_SHA\")
-        or os.getenv(\"COMMIT_SHA\")
-        or \"\"
+        os.getenv(\\"RAILWAY_GIT_COMMIT_SHA\\")
+        or os.getenv(\\"GIT_COMMIT_SHA\\")
+        or os.getenv(\\"COMMIT_SHA\\")
+        or \\"\\"
     )
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    print(\"LIFESPAN: before initialize\", flush=True)
+    print(\\"LIFESPAN: before initialize\\", flush=True)
     await ptb_app.initialize()
-    print(\"LIFESPAN: after initialize\", flush=True)
+    print(\\"LIFESPAN: after initialize\\", flush=True)
     await ptb_app.start()
-    print(\"LIFESPAN: after start\", flush=True)
-    log_json(logging.INFO, \"fastapi_startup\", uptime_s=uptime_s(), git_sha=(git_sha()[:12] if git_sha() else None))
+    print(\\"LIFESPAN: after start\\", flush=True)
+    log_json(logging.INFO, \\"fastapi_startup\\", uptime_s=uptime_s(), git_sha=(git_sha()[:12] if git_sha() else None))
     try:
         yield
     finally:
-        print(\"LIFESPAN: shutting down\", flush=True)
+        print(\\"LIFESPAN: shutting down\\", flush=True)
         await ptb_app.stop()
         await ptb_app.shutdown()
-        log_json(logging.INFO, \"fastapi_shutdown\")
+        log_json(logging.INFO, \\"fastapi_shutdown\\")
 
 # IMPORTANT: app must exist at module level for uvicorn bot.server:app
 app = FastAPI(lifespan=lifespan)
 
-@app.middleware(\"http\")
+@app.middleware(\\"http\\")
 async def _mw(request: Request, call_next):
     t0 = time.perf_counter()
     path = request.url.path
@@ -74,38 +76,43 @@ async def _mw(request: Request, call_next):
         status = resp.status_code
         return resp
     except Exception as e:
-        log_json(logging.ERROR, \"http_error\", path=path, method=method, error_type=type(e).__name__, error=str(e), trace=exc_to_str(e))
-        return JSONResponse({\"ok\": False, \"error\": type(e).__name__}, status_code=500)
+        log_json(logging.ERROR, \\"http_error\\", path=path, method=method, error_type=type(e).__name__, error=str(e), trace=exc_to_str(e))
+        return JSONResponse({\\"ok\\": False, \\"error\\": type(e).__name__}, status_code=500)
     finally:
         dt_ms = int((time.perf_counter() - t0) * 1000)
         LAT.labels(path=path, method=method).observe(dt_ms)
         REQS.labels(path=path, method=method, status=str(status)).inc()
-        log_json(logging.INFO, \"http_access\", path=path, method=method, status=status, dt_ms=dt_ms)
+        log_json(logging.INFO, \\"http_access\\", path=path, method=method, status=status, dt_ms=dt_ms)
 
-@app.get(\"/healthz\")
+@app.get(\\"/healthz\\")
 async def healthz():
-    return {\"ok\": True, \"uptime_s\": uptime_s(), \"git_sha\": (git_sha()[:12] if git_sha() else None)}
+    return {\\"ok\\": True, \\"uptime_s\\": uptime_s(), \\"git_sha\\": (git_sha()[:12] if git_sha() else None)}
 
-@app.get(\"/version\")
+@app.get(\\"/version\\")
 async def version():
-    return {\"service\": \"gardient2\", \"git_sha\": git_sha(), \"uptime_s\": uptime_s()}
+    return {\\"service\\": \\"gardient2\\", \\"git_sha\\": git_sha(), \\"uptime_s\\": uptime_s()}
 
-@app.get(\"/readyz\")
+@app.get(\\"/readyz\\")
 async def readyz():
     try:
         from bot.infrastructure import runtime_report
         _ = await runtime_report(full=False)
-        return {\"ok\": True}
+        return {\\"ok\\": True}
     except Exception as e:
-        return JSONResponse({\"ok\": False, \"error\": f\"{type(e).__name__}: {e}\"}, status_code=503)
+        return JSONResponse({\\"ok\\": False, \\"error\\": f\\"{type(e).__name__}: {e}\\"}, status_code=503)
 
-@app.get(\"/metrics\")
+@app.get(\\"/metrics\\")
 async def metrics():
     return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
-@app.post(\"/tg/webhook\")
+@app.post(\\"/tg/webhook\\")
 async def tg_webhook(request: Request):
     payload = await request.json()
     update = Update.de_json(payload, ptb_app.bot)
     await ptb_app.process_update(update)
-    return {\"ok\": True}
+    return {\\"ok\\": True}
+"""
+
+# write UTF-8 no BOM
+Path("bot/server.py").write_text(server.replace("\\r\\n","\\n"), encoding="utf-8")
+print("OK: wrote clean bot/server.py with module-level app")
