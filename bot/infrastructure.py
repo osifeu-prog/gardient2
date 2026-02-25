@@ -36,6 +36,8 @@ async def init_infrastructure():
     db_url_async = _to_asyncpg_url(DATABASE_URL)
 
     engine = create_async_engine(db_url_async, echo=False)
+    global SessionLocal
+    SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     redis_client = redis.from_url(REDIS_URL)
 
     await healthcheck()
