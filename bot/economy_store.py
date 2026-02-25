@@ -1,67 +1,16 @@
 from __future__ import annotations
 
-import json
 import time
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
-
 from bot.infrastructure import get_db_session
 
 
-# ---------------------------
-# Helpers
-# ---------------------------
+def _now_ms() -> int:
+    return int(time.time() * 1000)
 
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _safe_int(x: str) -> int:
-    return int(str(x).strip())
-
-
-# ---------------------------
-# Economy: Plans
-# ---------------------------
-
-async def set_plan_price(code: str, amount: int, currency: str = "SELHA") -> None:
-    async with get_db_session() as s:
-        await s.execute(
-            text("""
-                INSERT INTO plans(code, name, price_amount, price_currency, is_active)
-                VALUES (:code, :name, :amt, :cur, true)
-                ON CONFLICT (code)
-                DO UPDATE SET price_amount=EXCLUDED.price_amount, price_currency=EXCLUDED.price_currency, is_active=true
-            """),
-            {"code": code, "name": code, "amt": int(amount), "cur": currency},
-        )
-        await s.commit()
-
-
-async def get_plan(code: str) -> Optional[Dict[str, Any]]:
-    async with get_db_session() as s:
-        r = await s.execute(
-            text("SELECT code,name,price_amount,price_currency,is_active FROM plans WHERE code=:c"),
-            {"c": code},
-        )
-        row = r.first()
-        if not row:
-            return None
-        return {
-            "code": row[0],
-            "name": row[1],
-            "price_amount": int(row[2]),
-            "price_currency": row[3],
-            "is_active": bool(row[4]),
-        }
-
-
-# ---------------------------
-# Economy: Payment Requests
-# ---------------------------
 
 async def create_payment_request(
     user_id: int,
@@ -71,23 +20,14 @@ async def create_payment_request(
     tx_ref: Optional[str] = None,
     note: Optional[str] = None,
 ) -> int:
-    # id: use epoch-ms to avoid sequences
-    req_id = int(time.time() * 1000)
+    req_id = _now_ms()
     async with get_db_session() as s:
         await s.execute(
             text("""
                 INSERT INTO payment_requests(id,user_id,kind,amount,currency,tx_ref,note,status)
                 VALUES (:id,:uid,:kind,:amt,:cur,:tx,:note,'pending')
             """),
-            {
-                "id": req_id,
-                "uid": int(user_id),
-                "kind": kind,
-                "amt": int(amount),
-                "cur": currency,
-                "tx": tx_ref,
-                "note": note,
-            },
+            {"id": req_id, "uid": int(user_id), "kind": kind, "amt": int(amount), "cur": currency, "tx": tx_ref, "note": note},
         )
         await s.commit()
     return req_id
@@ -105,19 +45,10 @@ async def list_pending_requests(limit: int = 10) -> List[Dict[str, Any]]:
             """),
             {"lim": int(limit)},
         )
-        out: List[Dict[str, Any]] = []
-        for row in r.fetchall():
-            out.append({
-                "id": int(row[0]),
-                "user_id": int(row[1]),
-                "kind": row[2],
-                "amount": int(row[3]),
-                "currency": row[4],
-                "tx_ref": row[5],
-                "note": row[6],
-                "created_at": str(row[7]),
-            })
-        return out
+        return [
+            {"id": int(x[0]), "user_id": int(x[1]), "kind": x[2], "amount": int(x[3]), "currency": x[4], "tx_ref": x[5], "note": x[6], "created_at": str(x[7])}
+            for x in r.fetchall()
+        ]
 
 
 async def get_request(req_id: int) -> Optional[Dict[str, Any]]:
@@ -161,12 +92,8 @@ async def set_request_status(req_id: int, status: str, decided_by: int) -> None:
         await s.commit()
 
 
-# ---------------------------
-# Points Ledger
-# ---------------------------
-
 async def add_points(user_id: int, delta: int, reason: str, ref: Optional[str] = None) -> int:
-    entry_id = int(time.time() * 1000)
+    entry_id = _now_ms()
     async with get_db_session() as s:
         await s.execute(
             text("""
@@ -181,10 +108,7 @@ async def add_points(user_id: int, delta: int, reason: str, ref: Optional[str] =
 
 async def get_points_balance(user_id: int) -> int:
     async with get_db_session() as s:
-        r = await s.execute(
-            text("SELECT COALESCE(SUM(delta),0) FROM points_ledger WHERE user_id=:u"),
-            {"u": int(user_id)},
-        )
+        r = await s.execute(text("SELECT COALESCE(SUM(delta),0) FROM points_ledger WHERE user_id=:u"), {"u": int(user_id)})
         return int(r.scalar() or 0)
 
 
@@ -200,35 +124,18 @@ async def list_user_requests(user_id: int, limit: int = 5) -> List[Dict[str, Any
             """),
             {"u": int(user_id), "lim": int(limit)},
         )
-        out: List[Dict[str, Any]] = []
+        out = []
         for row in r.fetchall():
-            out.append({
-                "id": int(row[0]),
-                "kind": row[1],
-                "amount": int(row[2]),
-                "currency": row[3],
-                "status": row[4],
-                "tx_ref": row[5],
-                "created_at": str(row[6]),
-                "decided_at": (str(row[7]) if row[7] is not None else None),
-            })
+            out.append({"id": int(row[0]), "kind": row[1], "amount": int(row[2]), "currency": row[3], "status": row[4], "tx_ref": row[5], "created_at": str(row[6]), "decided_at": (str(row[7]) if row[7] else None)})
         return out
 
 
-# ---------------------------
-# Referral
-# ---------------------------
-
 async def upsert_referral(referrer_id: int, referred_id: int) -> bool:
-    if referrer_id == referred_id:
+    if int(referrer_id) == int(referred_id):
         return False
     async with get_db_session() as s:
         await s.execute(
-            text("""
-                INSERT INTO referrals(referrer_id, referred_id)
-                VALUES (:r,:u)
-                ON CONFLICT DO NOTHING
-            """),
+            text("INSERT INTO referrals(referrer_id,referred_id) VALUES (:r,:u) ON CONFLICT DO NOTHING"),
             {"r": int(referrer_id), "u": int(referred_id)},
         )
         await s.commit()
@@ -237,9 +144,6 @@ async def upsert_referral(referrer_id: int, referred_id: int) -> bool:
 
 async def get_referrer(referred_id: int) -> Optional[int]:
     async with get_db_session() as s:
-        r = await s.execute(
-            text("SELECT referrer_id FROM referrals WHERE referred_id=:u LIMIT 1"),
-            {"u": int(referred_id)},
-        )
+        r = await s.execute(text("SELECT referrer_id FROM referrals WHERE referred_id=:u LIMIT 1"), {"u": int(referred_id)})
         row = r.first()
         return int(row[0]) if row else None
