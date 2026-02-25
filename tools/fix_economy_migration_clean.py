@@ -1,14 +1,24 @@
-"""economy core
+from pathlib import Path
+import re
 
-Revision ID: 260225142333
-Revises: admins_requests_20260225_010837
+f = Path("migrations/versions/260225142333_economy_core.py")
+s = f.read_text(encoding="utf-8").replace("\r\n","\n")
+
+# Extract revision and down_revision from existing file to preserve identity
+rev = re.search(r'(?m)^revision\s*=\s*"([^"]+)"', s).group(1)
+down = re.search(r'(?m)^down_revision\s*=\s*"([^"]+)"', s).group(1)
+
+fixed = f'''"""economy core
+
+Revision ID: {rev}
+Revises: {down}
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = "260225142333"
-down_revision = "admins_requests_20260225_010837"
+revision = "{rev}"
+down_revision = "{down}"
 branch_labels = None
 depends_on = None
 
@@ -88,3 +98,6 @@ def downgrade():
     op.drop_index("ix_payment_requests_status", table_name="payment_requests")
     op.drop_table("payment_requests")
     op.drop_table("plans")
+'''
+f.write_text(fixed.replace("\r\n","\n"), encoding="utf-8")
+print("OK: rewrote economy_core migration cleanly:", f.name)
