@@ -89,8 +89,10 @@ def upgrade() -> None:
     op.execute("DROP INDEX IF EXISTS ix_ledger_events_telegram_id")
     op.execute("DROP TABLE IF EXISTS ledger_events CASCADE")
     op.execute("DROP TABLE IF EXISTS announcements CASCADE")
-    op.add_column('users', sa.Column('chat_id', sa.BigInteger(), nullable=True))
-    op.add_column('users', sa.Column('username', sa.String(length=128), nullable=True))
+    # Safety: ensure users table exists on empty DB
+    op.execute("CREATE TABLE IF NOT EXISTS users (id BIGINT PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT now())")
+    op.execute("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS chat_id BIGINT")
+    op.execute("ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS username VARCHAR(128)")
     op.alter_column('users', 'id',
                existing_type=sa.INTEGER(),
                type_=sa.BigInteger(),
