@@ -102,15 +102,15 @@ def upgrade() -> None:
                existing_type=postgresql.TIMESTAMP(timezone=True),
                nullable=True)
     op.execute("DROP INDEX IF EXISTS ix_users_email")
-    op.drop_column('users', 'last_login_at')
-    op.drop_column('users', 'airdrop_claimed')
-    op.drop_column('users', 'is_active')
-    op.drop_column('users', 'email')
-    op.drop_column('users', 'first_name')
-    op.drop_column('users', 'display_name')
-    op.drop_column('users', 'marketing_opt_in')
-    op.drop_column('users', 'language_code')
-    op.drop_column('users', 'balance')
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS last_login_at")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS airdrop_claimed")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS is_active")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS email")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS first_name")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS display_name")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS marketing_opt_in")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS language_code")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS balance")
     # ### end Alembic commands ###
 
 
@@ -134,8 +134,8 @@ def downgrade() -> None:
                type_=sa.INTEGER(),
                existing_nullable=False,
                autoincrement=True)
-    op.drop_column('users', 'username')
-    op.drop_column('users', 'chat_id')
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS username")
+    op.execute("ALTER TABLE IF EXISTS users DROP COLUMN IF EXISTS chat_id")
     op.create_table('announcements',
     sa.Column('id', sa.INTEGER(), autoincrement=True, nullable=False),
     sa.Column('title', sa.VARCHAR(length=200), autoincrement=False, nullable=False),
