@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import text
 import redis.asyncio as redis
+from alembic import command
+from alembic.config import Config
 
 logger = logging.getLogger("guardian_infra")
 
@@ -98,3 +100,18 @@ async def get_db_session():
         raise RuntimeError("DB session factory not initialized (call init_infrastructure first)")
     async with SessionLocal() as session:
         yield session
+
+
+async def run_migrations_safe():
+    """Run alembic upgrade head safely (do not crash app if it fails)."""
+    if not DATABASE_URL:
+        logger.warning("migrations: DATABASE_URL missing; skip")
+        return
+    try:
+        cfg = Config("alembic.ini")
+        # Alembic uses sync engine internally; it can work with DATABASE_URL (psycopg2) or asyncpg url depending on config.
+        # We keep it simple: rely on existing alembic.ini settings.
+        command.upgrade(cfg, "head")
+        logger.info("migrations: alembic upgrade head OK")
+    except Exception as e:
+        logger.error("migrations: alembic upgrade failed: %s: %s", type(e).__name__, e)
