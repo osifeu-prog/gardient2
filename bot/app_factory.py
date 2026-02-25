@@ -10,7 +10,7 @@ from telegram.error import Conflict
 
 from bot.config import BOT_TOKEN, ENV, ADMIN_CHAT_ID, WEBHOOK_URL, MODE
 from bot.infrastructure import init_infrastructure, runtime_report
-from bot.telemetry import log_json, exc_to_str, update_brief
+from bot.telemetry import log_json, exc_to_str, update_brief, log_event
 from bot.rbac_store import has_role, grant_role, revoke_role, list_users_with_role
 from bot.config import DONATE_URL
 from bot.economy_store import (
@@ -90,7 +90,9 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ref_id = int(str(context.args[0]).split("_", 1)[1])
             u = update.effective_user
             if u:
-                await upsert_referral(ref_id, int(u.id))
+                ok_link = await upsert_referral(ref_id, int(u.id))
+                if ok_link:
+                    log_event(logging.INFO, "referral_linked", referrer_id=ref_id, referred_id=int(u.id))
     except Exception:
         pass
 
@@ -151,6 +153,7 @@ async def ref_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     bot_user = await context.bot.get_me()
     link = f"https://t.me/{bot_user.username}?start=ref_{u.id}"
+    log_event(logging.INFO, "referral_link_issued", user_id=int(u.id), username=(u.username or None))
     await update.message.reply_text("REFERRAL LINK\n" + link)
 
 async def my_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -185,6 +188,7 @@ async def buy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amt = _parse_amount(context.args[0])
     note = " ".join(context.args[1:]) if len(context.args) > 1 else None
     req_id = await create_payment_request(int(u.id), "buy_token", amt, "SELHA", note=note)
+    log_event(logging.INFO, "economy_request_created", kind="buy_token", request_id=req_id, amount=amt, user_id=int(u.id), username=(u.username or None))
     await update.message.reply_text(f"OK: buy request created #{req_id} (pending)")
 
 async def claim_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -199,6 +203,7 @@ async def claim_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tx = context.args[1]
     note = " ".join(context.args[2:]) if len(context.args) > 2 else None
     req_id = await create_payment_request(int(u.id), "donate", amt, "SELHA", tx_ref=tx, note=note)
+    log_event(logging.INFO, "economy_request_created", kind="donate", request_id=req_id, amount=amt, user_id=int(u.id), username=(u.username or None), tx_ref=tx)
     await update.message.reply_text(f"OK: donation claim created #{req_id} (pending)")
 
 async def pending_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -235,6 +240,8 @@ async def approve_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bonus = max(1, int(int(req["amount"]) * 0.05))
         await add_points(int(referrer), bonus, reason="ref_bonus", ref=str(rid))
 
+    log_event(logging.INFO, "economy_request_decided", action="approve", request_id=rid, user_id=int(req["user_id"]), decided_by=int(update.effective_user.id), amount=int(req["amount"]), kind=req["kind"])
+    log_event(logging.INFO, "points_awarded", user_id=int(req["user_id"]), delta=int(req["amount"]), reason=req["kind"], ref=str(rid))
     await update.message.reply_text(f"OK: approved #{rid} and awarded {req['amount']} points")
 
 async def reject_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -250,6 +257,7 @@ async def reject_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Not found or not pending.")
         return
     await set_request_status(rid, "rejected", decided_by=int(update.effective_user.id))
+    log_event(logging.INFO, "economy_request_decided", action="reject", request_id=rid, decided_by=int(update.effective_user.id))
     await update.message.reply_text(f"OK: rejected #{rid}")
 
 

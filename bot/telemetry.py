@@ -32,3 +32,13 @@ def update_brief(update: Any) -> Dict[str, Any]:
         }
     except Exception:
         return {}
+
+
+def log_event(level: int, event: str, **fields):
+    # canonical structured log (one-line JSON)
+    try:
+        log_json(level, event, **fields)
+    except Exception:
+        # last resort fallback
+        import logging as _logging
+        _logging.getLogger("telemetry").log(level, f"{event} {fields}")
