@@ -10,6 +10,8 @@ from telegram.error import Conflict
 from bot.config import BOT_TOKEN, ENV, ADMIN_CHAT_ID, WEBHOOK_URL, MODE
 from bot.infrastructure import init_infrastructure, runtime_report
 from bot.telemetry import log_json, exc_to_str, update_brief
+from bot.rbac_store import has_role, grant_role, revoke_role, list_users_with_role
+from bot.config import DONATE_URL
 
 START_TS = time.time()
 
@@ -26,6 +28,20 @@ def _git_sha() -> str:
 
 def is_admin(update: Update) -> bool:
     return bool(ADMIN_CHAT_ID) and str(update.effective_chat.id) == str(ADMIN_CHAT_ID)
+
+def is_owner(update: Update) -> bool:
+    # owner is ADMIN_CHAT_ID (chat id)
+    return bool(ADMIN_CHAT_ID) and str(update.effective_chat.id) == str(ADMIN_CHAT_ID)
+
+async def is_admin_rbac(update: Update) -> bool:
+    # owner always allowed; else admin role in DB
+    if is_owner(update):
+        return True
+    try:
+        return await has_role(int(update.effective_user.id), "admin")
+    except Exception:
+        # if DB not ready, fall back to legacy owner-only
+        return False
 
 ASCII_BANNER = ""
 try:
@@ -101,6 +117,13 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_admin(update):
         lines.append(f"webhook_url: {WEBHOOK_URL or 'MISSING'}")
     await update.message.reply_text("\n".join(lines))
+
+
+async def donate_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not DONATE_URL:
+        await update.message.reply_text("Donations are not configured yet.")
+        return
+    await update.message.reply_text(f"DONATE / SUPPORT\n{DONATE_URL}")
 
 async def vars_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
@@ -221,6 +244,72 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text("BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
+
+async def grant_admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update):
+        await update.message.reply_text("Access denied.")
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /grant_admin <user_id>")
+        return
+    uid = int(context.args[0])
+    await grant_role(uid, "admin", granted_by=int(update.effective_user.id))
+    await update.message.reply_text(f"OK: granted admin to {uid}")
+
+async def revoke_admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update):
+        await update.message.reply_text("Access denied.")
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /revoke_admin <user_id>")
+        return
+    uid = int(context.args[0])
+    await revoke_role(uid, "admin")
+    await update.message.reply_text(f"OK: revoked admin from {uid}")
+
+async def admins_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_rbac(update):
+        await update.message.reply_text("Access denied.")
+        return
+    admins = await list_users_with_role("admin")
+    lines = ["ADMINS:"]
+    if not admins:
+        lines.append("(none)")
+    else:
+        for a in admins:
+            lines.append(f"- {a['user_id']} (by {a['granted_by']} at {a['granted_at']})")
+    await update.message.reply_text("\n".join(lines))
+
+async def dm_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_rbac(update):
+        await update.message.reply_text("Access denied.")
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /dm <user_id> <msg>")
+        return
+    uid = int(context.args[0])
+    msg = " ".join(context.args[1:])
+    await context.bot.send_message(chat_id=uid, text=msg)
+    await update.message.reply_text("OK: sent.")
+
+async def broadcast_admins_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update):
+        await update.message.reply_text("Access denied.")
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /broadcast_admins <msg>")
+        return
+    msg = " ".join(context.args)
+    admins = await list_users_with_role("admin")
+    sent = 0
+    for a in admins:
+        try:
+            await context.bot.send_message(chat_id=int(a["user_id"]), text=msg)
+            sent += 1
+        except Exception:
+            pass
+    await update.message.reply_text(f"OK: broadcasted to {sent} admins.")
+
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     e = context.error
     brief = update_brief(update) if isinstance(update, Update) else {}
@@ -242,6 +331,7 @@ def build_application():
     app.add_handler(CommandHandler("menu", with_latency("menu", menu_cmd)))
     app.add_handler(CommandHandler("status", with_latency("status", status_cmd)))
     app.add_handler(CommandHandler("health", with_latency("health", health_cmd)))
+    app.add_handler(CommandHandler("donate", with_latency("donate", donate_cmd)))
     app.add_handler(CommandHandler("vars", with_latency("vars", vars_cmd)))
     app.add_handler(CommandHandler("webhook", with_latency("webhook", webhookinfo_cmd)))
     app.add_handler(CommandHandler("diag", with_latency("diag", diag_cmd)))
@@ -250,4 +340,9 @@ def build_application():
     app.add_handler(CommandHandler("whoami", with_latency("whoami", whoami_cmd)))
     app.add_handler(CommandHandler("snapshot", with_latency("snapshot", snapshot_cmd)))
     app.add_handler(CommandHandler("admin", with_latency("admin", admin_cmd)))
+    app.add_handler(CommandHandler("grant_admin", with_latency("grant_admin", grant_admin_cmd)))
+    app.add_handler(CommandHandler("revoke_admin", with_latency("revoke_admin", revoke_admin_cmd)))
+    app.add_handler(CommandHandler("admins", with_latency("admins", admins_cmd)))
+    app.add_handler(CommandHandler("dm", with_latency("dm", dm_cmd)))
+    app.add_handler(CommandHandler("broadcast_admins", with_latency("broadcast_admins", broadcast_admins_cmd)))
     return app

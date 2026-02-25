@@ -22,3 +22,6 @@ ZUZ_TOKEN_ADDRESS = os.getenv("ZUZ_TOKEN_ADDRESS")
 
 # AI (optional)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Payments (MVP)
+DONATE_URL = os.getenv("DONATE_URL")

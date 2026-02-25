@@ -9,7 +9,7 @@ from prometheus_client import Counter, Histogram, CollectorRegistry, generate_la
 from telegram import Update
 
 from bot.app_factory import build_application
-from bot.infrastructure import init_infrastructure
+from bot.infrastructure import init_infrastructure, run_migrations_safe
 from bot.telemetry import log_json, exc_to_str
 
 APP_START = time.time()
@@ -55,6 +55,7 @@ def git_sha() -> str:
 async def lifespan(_app: FastAPI):
     # Infra first
     await init_infrastructure()
+    await run_migrations_safe()
     # Telegram bot init/start
     await ptb_app.initialize()
     await ptb_app.start()
