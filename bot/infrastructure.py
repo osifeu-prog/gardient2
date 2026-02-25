@@ -75,11 +75,18 @@ async def runtime_report(full: bool = False) -> str:
     return "\n".join(lines)
 
 
-async def check_postgres():
     # used by /readyz for latency measurement
     await _check_postgres()
 
 
-async def check_redis():
     # used by /readyz for latency measurement
     await _check_redis()
+
+
+async def check_postgres():
+    # wrapper used by /readyz
+    await check_postgres()
+
+async def check_redis():
+    # wrapper used by /readyz
+    await check_redis()
