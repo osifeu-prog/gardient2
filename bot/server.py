@@ -111,7 +111,15 @@ async def version():
 @app.get("/readyz")
 async def readyz():
     t0 = time.perf_counter()
-    payload = {"ok": True}
+    try:
+        from bot.infrastructure import runtime_report
+        _ = await runtime_report(full=False)
+        return {"ok": True, "elapsed_ms": int((time.perf_counter() - t0) * 1000)}
+    except Exception as e:
+        return JSONResponse(
+            {"ok": False, "elapsed_ms": int((time.perf_counter() - t0) * 1000), "error": f"{type(e).__name__}: {e}"},
+            status_code=503,
+        )
 
     try:
         from bot.infrastructure import check_postgres, check_redis
