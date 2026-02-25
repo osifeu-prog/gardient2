@@ -4,6 +4,7 @@ import time
 from typing import Callable, Awaitable
 
 from telegram import Update
+from telegram import BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegram.error import Conflict
 
@@ -101,7 +102,7 @@ async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
 
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lines = ["Commands:", "/start", "/status", "/menu", "/whoami", "/health"]
+    lines = ["Commands:", "/start", "/status", "/menu", "/whoami", "/health", "/donate", "/admins", "/grant_admin", "/revoke_admin", "/dm", "/broadcast_admins"]
     if is_admin(update):
         lines += ["", "Admin:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
     await update.message.reply_text("\n".join(lines))
@@ -321,6 +322,25 @@ async def post_init(app):
     await init_infrastructure()
     if ADMIN_CHAT_ID:
         await app.bot.send_message(chat_id=int(ADMIN_CHAT_ID), text="BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
+
+
+    # Telegram official commands (autocomplete)
+    try:
+        await app.bot.set_my_commands([
+            BotCommand("start","Start"),
+            BotCommand("menu","Show menu"),
+            BotCommand("status","Infra status"),
+            BotCommand("health","Health report"),
+            BotCommand("whoami","User info"),
+            BotCommand("donate","Support / donate"),
+            BotCommand("admins","List admins"),
+            BotCommand("grant_admin","(owner) Grant admin"),
+            BotCommand("revoke_admin","(owner) Revoke admin"),
+            BotCommand("dm","DM a user (admin)"),
+            BotCommand("broadcast_admins","(owner) Broadcast to admins"),
+        ])
+    except Exception:
+        pass
 
 def build_application():
     if not BOT_TOKEN:
