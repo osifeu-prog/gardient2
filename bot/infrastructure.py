@@ -1,6 +1,7 @@
 import os
 import logging
-from sqlalchemy.ext.asyncio import create_async_engine
+from contextlib import asynccontextmanager
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import text
 import redis.asyncio as redis
 
@@ -10,6 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 REDIS_URL = os.getenv("REDIS_URL")
 
 engine = None
+SessionLocal = None
 redis_client = None
 
 def _to_asyncpg_url(url: str) -> str:
@@ -88,3 +90,11 @@ async def runtime_report(full: bool = False) -> str:
 
     # wrapper used by /readyz
     await check_redis()
+
+
+@asynccontextmanager
+async def get_db_session():
+    if SessionLocal is None:
+        raise RuntimeError("DB session factory not initialized (call init_infrastructure first)")
+    async with SessionLocal() as session:
+        yield session

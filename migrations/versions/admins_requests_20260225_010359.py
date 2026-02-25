@@ -1,10 +1,10 @@
-﻿\"\"\"admin tables
+﻿"""admin tables
 
 Revision ID: admins_requests_20260225_010359
 Revises: 
 Create Date: 2026-02-25 01:03:59
 
-\"\"\"
+"""
 
 from alembic import op
 import sqlalchemy as sa
