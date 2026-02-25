@@ -10,7 +10,7 @@ from telegram.error import Conflict
 
 from bot.config import BOT_TOKEN, ENV, ADMIN_CHAT_ID, WEBHOOK_URL, MODE
 from bot.infrastructure import init_infrastructure, runtime_report
-from bot.telemetry import log_json, exc_to_str, update_brief, log_event
+from bot.telemetry import log_json, exc_to_str, update_brief, log_event, log_event
 from bot.rbac_store import has_role, grant_role, revoke_role, list_users_with_role
 from bot.config import DONATE_URL
 from bot.economy_store import (
@@ -204,6 +204,7 @@ async def claim_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     note = " ".join(context.args[2:]) if len(context.args) > 2 else None
     req_id = await create_payment_request(int(u.id), "donate", amt, "SELHA", tx_ref=tx, note=note)
     log_event(logging.INFO, "economy_request_created", kind="donate", request_id=req_id, amount=amt, user_id=int(u.id), username=(u.username or None), tx_ref=tx)
+    log_event(logging.INFO, "economy_request_created", kind="donate", request_id=req_id, amount=amt, user_id=int(u.id), username=(u.username or None), tx_ref=tx)
     await update.message.reply_text(f"OK: donation claim created #{req_id} (pending)")
 
 async def pending_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -257,6 +258,7 @@ async def reject_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Not found or not pending.")
         return
     await set_request_status(rid, "rejected", decided_by=int(update.effective_user.id))
+    log_event(logging.INFO, "economy_request_decided", action="reject", request_id=rid, decided_by=int(update.effective_user.id))
     log_event(logging.INFO, "economy_request_decided", action="reject", request_id=rid, decided_by=int(update.effective_user.id))
     await update.message.reply_text(f"OK: rejected #{rid}")
 
