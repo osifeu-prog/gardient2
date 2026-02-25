@@ -14,6 +14,7 @@ from bot.telemetry import log_json, exc_to_str, update_brief, log_event, log_eve
 from bot.rbac_store import has_role, grant_role, revoke_role, list_users_with_role
 from bot.config import DONATE_URL
 from bot.economy_store import (
+    add_account, list_accounts, set_plan_price, list_plans,
     create_payment_request, list_pending_requests, get_request, set_request_status,
     add_points, get_points_balance, list_user_requests,
     upsert_referral, get_referrer,
@@ -261,6 +262,82 @@ async def reject_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_event(logging.INFO, "economy_request_decided", action="reject", request_id=rid, decided_by=int(update.effective_user.id))
     log_event(logging.INFO, "economy_request_decided", action="reject", request_id=rid, decided_by=int(update.effective_user.id))
     await update.message.reply_text(f"OK: rejected #{rid}")
+
+
+
+async def add_account_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    u = update.effective_user
+    if not u:
+        await update.message.reply_text("No user.")
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: /add_account <bank|crypto> <label> <details...>\nExample: /add_account crypto MyTON address=UQ...\nExample: /add_account bank MyBank bank=Hapoalim branch=123 account=456")
+        return
+
+    acc_type = context.args[0].lower()
+    if acc_type not in ("bank","crypto"):
+        await update.message.reply_text("First arg must be bank or crypto.")
+        return
+
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /add_account <bank|crypto> <label> <details...>")
+        return
+
+    label = context.args[1]
+    details = {}
+    for token in context.args[2:]:
+        if "=" in token:
+            k,v = token.split("=",1)
+            details[k.strip()] = v.strip()
+        else:
+            # free text goes into note
+            details.setdefault("note", "")
+            details["note"] = (details["note"] + " " + token).strip()
+
+    acc_id = await add_account(int(u.id), acc_type, label, details)
+    await update.message.reply_text(f"OK: account saved #{acc_id}")
+
+async def prices_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    plans = await list_plans()
+    lines = ["PRICES:"]
+    if not plans:
+        lines.append("(none)")
+    else:
+        for p in plans:
+            lines.append(f"- {p['code']}: {p['price_amount']} {p['price_currency']} ({'active' if p['is_active'] else 'inactive'})")
+    await update.message.reply_text("\n".join(lines))
+
+async def set_price_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_owner(update):
+        await update.message.reply_text("Access denied.")
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /set_price <plan_code> <amount>")
+        return
+    code = context.args[0]
+    amt = _parse_amount(context.args[1])
+    await set_plan_price(code, amt, "SELHA")
+    await update.message.reply_text(f"OK: price set {code} = {amt} SELHA")
+
+async def trade_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # manual trading wizard (request -> approve)
+    u = update.effective_user
+    if not u:
+        await update.message.reply_text("No user.")
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /trade <buy|sell> <amount> [note]\nExample: /trade buy 100\nExample: /trade sell 50 reason=takeprofit")
+        return
+    side = context.args[0].lower()
+    if side not in ("buy","sell"):
+        await update.message.reply_text("First arg must be buy or sell.")
+        return
+    amt = _parse_amount(context.args[1])
+    note = " ".join(context.args[2:]) if len(context.args) > 2 else None
+    kind = "buy_token" if side == "buy" else "sell_token"
+    req_id = await create_payment_request(int(u.id), kind, amt, "SELHA", note=note)
+    await update.message.reply_text(f"OK: trade request created #{req_id} ({kind}) [pending]")
 
 
 async def donate_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -517,5 +594,9 @@ def build_application():
     app.add_handler(CommandHandler("pending", with_latency("pending", pending_cmd)))
     app.add_handler(CommandHandler("approve", with_latency("approve", approve_cmd)))
     app.add_handler(CommandHandler("reject", with_latency("reject", reject_cmd)))
+    app.add_handler(CommandHandler("add_account", with_latency("add_account", add_account_cmd)))
+    app.add_handler(CommandHandler("prices", with_latency("prices", prices_cmd)))
+    app.add_handler(CommandHandler("set_price", with_latency("set_price", set_price_cmd)))
+    app.add_handler(CommandHandler("trade", with_latency("trade", trade_cmd)))
 
     return app
