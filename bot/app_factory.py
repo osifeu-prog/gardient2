@@ -82,7 +82,8 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/status    DB/Redis/Alembic status\n"
         "/menu      menu\n"
         "/whoami    who am I\n"
-        "/health    system health\n""        "/donate    support / donate\n"
+        "/health    system health\n"
+        "/donate    support / donate\n"
         "/admins    list admins (access-controlled)\n"
     )
     if is_admin(update):
