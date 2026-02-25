@@ -81,7 +81,7 @@ def upgrade() -> None:
     sa.UniqueConstraint('voter_user_id', 'candidate_id', name='uq_vote')
     )
     op.drop_index('ix_manh_invoices_user', table_name='manh_invoices', if_exists=True)
-    op.drop_table('manh_invoices')
+    op.drop_table('manh_invoices', if_exists=True)
     op.drop_index('ix_manh_withdrawals_user', table_name='manh_withdrawals')
     op.drop_table('manh_withdrawals')
     op.drop_index('ix_manh_purchases_user', table_name='manh_purchases')
