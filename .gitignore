@@ -24,3 +24,10 @@ migrations.BAK_*/
 # node
 node_modules/
 **/node_modules/
+# backups
+migrations.BAK_*/
+telegram-guardian_backupkit_*.zip
+
+# local tooling
+tools/bfg/
+tools/filter_index_remove.py
