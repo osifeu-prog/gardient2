@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>פרופיל משתמש</title>
+</head>
+<body>
+  <h1>פרופיל משתמש</h1>
+  <p id="user">טוען נתונים...</p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    fetch("/api/profile/" + id)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("user").innerText =
+          "מזהה ציבורי: " + data.public_id;
+      })
+      .catch(() => {
+        document.getElementById("user").innerText = "שגיאה בטעינת הפרופיל";
+      });
+  </script>
+</body>
+</html>

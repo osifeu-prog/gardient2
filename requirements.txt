@@ -32,3 +32,8 @@ alembic==1.13.2
 fastapi==0.115.6
 uvicorn==0.34.0
 prometheus-client==0.21.1
+
+eth-account==0.13.7
+
+pycryptodome==3.23.0
+

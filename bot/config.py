@@ -1,9 +1,9 @@
-import os
+﻿import os
 
 # Core
 ENV = os.getenv("ENV", "production").lower()
 MODE = os.getenv("MODE", "polling").lower()  # polling | webhook
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # for webhook mode (optional)
 
 # Admin

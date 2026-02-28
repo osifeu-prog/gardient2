@@ -1,4 +1,4 @@
-import os
+﻿import os
 import logging
 import time
 from pathlib import Path
@@ -97,22 +97,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"```\n{ASCII_BANNER.strip()}\n```\n"
         "SLH Security + Ops Control\n\n"
-        "ברוך הבא ל-.\n"
-        "מערכת לניטור תשתיות, גיבוי, ניהול תפעול, והכנה ל-SaaS מלא.\n\n"
-        "פקודות:\n"
-        "/status    סטטוס DB/Redis/Alembic\n"
-        "/menu      תפריט\n"
-        "/whoami    מי אני\n"
-        "/health    מצב מערכת\n"
+        "×‘×¨×•×ڑ ×”×‘×گ ×œ-.\n"
+        "×‍×¢×¨×›×ھ ×œ× ×™×ک×•×¨ ×ھ×©×ھ×™×•×ھ, ×’×™×‘×•×™, × ×™×”×•×œ ×ھ×¤×¢×•×œ, ×•×”×›× ×” ×œ-SaaS ×‍×œ×گ.\n\n"
+        "×¤×§×•×“×•×ھ:\n"
+        "/status    ×،×ک×ک×•×، DB/Redis/Alembic\n"
+        "/menu      ×ھ×¤×¨×™×ک\n"
+        "/whoami    ×‍×™ ×گ× ×™\n"
+        "/health    ×‍×¦×‘ ×‍×¢×¨×›×ھ\n"
     )
     if is_admin(update):
         text += (
-            "\n/admin     דוח אדמין\n"
+            "\n/admin     ×“×•×— ×گ×“×‍×™×ں\n"
             "/vars      Vars (SET/MISSING)\n"
             "/webhook   Webhook Info\n"
-            "/diag      דיאגנוסטיקה\n"
-            "/pingdb    בדיקת DB latency\n"
-            "/pingredis בדיקת Redis latency\n"
+            "/diag      ×“×™×گ×’× ×•×،×ک×™×§×”\n"
+            "/pingdb    ×‘×“×™×§×ھ DB latency\n"
+            "/pingredis ×‘×“×™×§×ھ Redis latency\n"
         )
     await update.message.reply_text(text, parse_mode="Markdown")
 
@@ -121,7 +121,7 @@ async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     c = update.effective_chat
     lines = [
-        "🧾 WHOAMI",
+        "ًں§¾ WHOAMI",
         f"user_id: {u.id if u else None}",
         f"username: @{u.username}" if u and u.username else "username: (none)",
         f"chat_id: {c.id if c else None}",
@@ -133,7 +133,7 @@ async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "menu")
     lines = [
-        "🧪 תפריט בדיקות:",
+        "ًں§ھ ×ھ×¤×¨×™×ک ×‘×“×™×§×•×ھ:",
         "/start",
         "/status",
         "/menu",
@@ -141,7 +141,7 @@ async def menu_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/health",
     ]
     if is_admin(update):
-        lines += ["", "🔐 פקודות אדמין:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
+        lines += ["", "ًں”گ ×¤×§×•×“×•×ھ ×گ×“×‍×™×ں:", "/admin", "/vars", "/webhook", "/diag", "/pingdb", "/pingredis"]
     await update.message.reply_text("\n".join(lines))
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -152,7 +152,7 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "health")
     sha = _git_sha()
     lines = [
-        "🫀 HEALTH",
+        "ًں«€ HEALTH",
         f"ENV: {ENV}",
         f"MODE: {MODE}",
         f"uptime_s: {_uptime_s()}",
@@ -167,10 +167,10 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def vars_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "vars")
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין לך הרשאה.")
+        await update.message.reply_text("â›” ×گ×™×ں ×œ×ڑ ×”×¨×©×گ×”.")
         return
     lines = [
-        "🔐 VARS (SET/MISSING)",
+        "ًں”گ VARS (SET/MISSING)",
         f"ENV: {ENV}",
         f"MODE: {MODE}",
         f"BOT_TOKEN: {_mask_bool(BOT_TOKEN)}",
@@ -186,7 +186,7 @@ async def vars_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "webhook")
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין לך הרשאה.")
+        await update.message.reply_text("â›” ×گ×™×ں ×œ×ڑ ×”×¨×©×گ×”.")
         return
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/getWebhookInfo"
@@ -195,7 +195,7 @@ async def webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = r.json()
         result = data.get("result", {})
         lines = [
-            "🪝 WEBHOOK INFO",
+            "ًںھ‌ WEBHOOK INFO",
             f"url: {result.get('url') or ''}",
             f"pending_update_count: {result.get('pending_update_count')}",
             f"last_error_date: {result.get('last_error_date')}",
@@ -209,11 +209,11 @@ async def webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def diag_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "diag")
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין לך הרשאה.")
+        await update.message.reply_text("â›” ×گ×™×ں ×œ×ڑ ×”×¨×©×گ×”.")
         return
     sha = _git_sha()
     lines = [
-        "🧪 DIAG",
+        "ًں§ھ DIAG",
         f"env: {ENV}",
         f"mode: {MODE}",
         f"uptime_s: {_uptime_s()}",
@@ -230,7 +230,7 @@ async def diag_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def pingdb_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "pingdb")
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין לך הרשאה.")
+        await update.message.reply_text("â›” ×گ×™×ں ×œ×ڑ ×”×¨×©×گ×”.")
         return
     t0 = time.perf_counter()
     ok = False
@@ -242,12 +242,12 @@ async def pingdb_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         err = f"{type(e).__name__}: {e}"
     dt_ms = int((time.perf_counter() - t0) * 1000)
-    await update.message.reply_text(f"🗄️ DB ping: {'OK' if ok else 'FAIL'} ({dt_ms} ms){'' if not err else ' | ' + err}")
+    await update.message.reply_text(f"ًں—„ï¸ڈ DB ping: {'OK' if ok else 'FAIL'} ({dt_ms} ms){'' if not err else ' | ' + err}")
 
 async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "pingredis")
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין לך הרשאה.")
+        await update.message.reply_text("â›” ×گ×™×ں ×œ×ڑ ×”×¨×©×گ×”.")
         return
     # Same approach: time infra report (redis is included there).
     t0 = time.perf_counter()
@@ -259,14 +259,14 @@ async def pingredis_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         err = f"{type(e).__name__}: {e}"
     dt_ms = int((time.perf_counter() - t0) * 1000)
-    await update.message.reply_text(f"🧠 Redis ping: {'OK' if ok else 'FAIL'} ({dt_ms} ms){'' if not err else ' | ' + err}")
+    await update.message.reply_text(f"ًں§  Redis ping: {'OK' if ok else 'FAIL'} ({dt_ms} ms){'' if not err else ' | ' + err}")
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _log_cmd(update, "admin")
     if not is_admin(update):
-        await update.message.reply_text("⛔ אין לך הרשאה.")
+        await update.message.reply_text("â›” ×گ×™×ں ×œ×ڑ ×”×¨×©×گ×”.")
         return
-    await update.message.reply_text("🧾 BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
+    await update.message.reply_text("ًں§¾ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True))
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     err = context.error
@@ -279,7 +279,7 @@ async def post_init(app):
     if ADMIN_CHAT_ID:
         await app.bot.send_message(
             chat_id=int(ADMIN_CHAT_ID),
-            text="🧾 BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True),
+            text="ًں§¾ BOOT/ADMIN REPORT\n\n" + await runtime_report(full=True),
         )
 
 def main():
@@ -328,7 +328,7 @@ def main():
             drop_pending_updates=True,
         )
     else:
-        app.run_polling(drop_pending_updates=True)
+        raise RuntimeError("Polling disabled. Use webhook mode only.")
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,8 @@
-import os
+﻿import os
 import logging
-from contextlib import asynccontextmanager
+import asyncio
+from typing import Optional
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import text
 import redis.asyncio as redis
@@ -9,12 +11,10 @@ from alembic.config import Config
 
 logger = logging.getLogger("guardian_infra")
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-REDIS_URL = os.getenv("REDIS_URL")
-
 engine = None
-SessionLocal = None
+SessionLocal: Optional[async_sessionmaker] = None
 redis_client = None
+
 
 def _to_asyncpg_url(url: str) -> str:
     if url.startswith("postgres://"):
@@ -23,97 +23,101 @@ def _to_asyncpg_url(url: str) -> str:
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
 
-async def init_infrastructure():
-    global engine, redis_client
 
-    if not DATABASE_URL:
-        logger.error("DATABASE_URL missing")
-        raise RuntimeError("Infrastructure not configured")
-    if not REDIS_URL:
-        logger.error("REDIS_URL missing")
-        raise RuntimeError("Infrastructure not configured")
+async def _retry(name: str, fn, attempts: int, delay_s: float):
+    last = None
+    for i in range(1, attempts + 1):
+        try:
+            await fn()
+            logger.info("%s: OK (attempt %d/%d)", name, i, attempts)
+            return
+        except Exception as e:
+            last = e
+            logger.warning("%s: not ready (attempt %d/%d): %s: %s", name, i, attempts, type(e).__name__, e)
+            await asyncio.sleep(delay_s)
+    raise RuntimeError(f"{name} not ready after {attempts} attempts: {type(last).__name__}: {last}")
 
-    db_url_async = _to_asyncpg_url(DATABASE_URL)
 
-    engine = create_async_engine(db_url_async, echo=False)
-    global SessionLocal
+async def init_infrastructure(wait: bool = True):
+    global engine, SessionLocal, redis_client
+
+    db_url = os.getenv("DATABASE_URL")
+    redis_url = os.getenv("REDIS_URL")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL missing")
+    if not redis_url:
+        raise RuntimeError("REDIS_URL missing")
+
+    engine = create_async_engine(_to_asyncpg_url(db_url), echo=False)
     SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    redis_client = redis.from_url(REDIS_URL)
+    redis_client = redis.from_url(redis_url)
 
-    await healthcheck()
+    if wait:
+        await _retry(
+            "Postgres",
+            check_postgres,
+            attempts=int(os.getenv("DB_WAIT_ATTEMPTS", "40")),
+            delay_s=float(os.getenv("DB_WAIT_DELAY_S", "1")),
+        )
+        await _retry(
+            "Redis",
+            check_redis,
+            attempts=int(os.getenv("REDIS_WAIT_ATTEMPTS", "40")),
+            delay_s=float(os.getenv("REDIS_WAIT_DELAY_S", "1")),
+        )
 
-async def healthcheck():
-    logger.info("Running infrastructure healthcheck...")
+    logger.info("Infrastructure initialized (wait=%s)", wait)
 
+
+async def check_postgres():
+    if engine is None:
+        raise RuntimeError("Postgres not initialized")
     async with engine.begin() as conn:
-        result = await conn.execute(text("SELECT 1"))
-        if result.scalar() == 1:
-            logger.info("PostgreSQL connection: OK")
-        else:
-            raise RuntimeError("PostgreSQL healthcheck failed")
+        r = await conn.execute(text("SELECT 1"))
+        if r.scalar() != 1:
+            raise RuntimeError("Postgres healthcheck failed")
 
-    if await redis_client.ping():
-        logger.info("Redis connection: OK")
-    else:
-        raise RuntimeError("Redis healthcheck failed")
 
-def alembic_indicator() -> str:
-    mig_dir = os.path.join(os.getcwd(), "migrations")
-    ok = os.path.isdir(mig_dir)
-    return f"Alembic: {'OK' if ok else 'MISSING'} (migrations folder)"
+async def check_redis():
+    if redis_client is None:
+        raise RuntimeError("Redis not initialized")
+    ok = await redis_client.ping()
+    if not ok:
+        raise RuntimeError("Redis ping failed")
+
 
 async def runtime_report(full: bool = False) -> str:
     lines = []
-    lines.append("🧾 SLH Guardian — Runtime Report")
+    lines.append("SLH Guardian — Runtime Report")
     lines.append(f"ENV: {os.getenv('ENV', 'production')}")
-    lines.append(f"MODE: {os.getenv('MODE', 'polling')}")
+    lines.append(f"MODE: {os.getenv('MODE', 'webhook')}")
     lines.append("")
-    lines.append(f"Postgres: {'OK' if engine is not None else 'NOT INIT'}")
-    lines.append(f"Redis: {'OK' if redis_client is not None else 'NOT INIT'}")
-    lines.append(alembic_indicator())
+    lines.append(f"Postgres: {'OK' if engine else 'NOT INIT'}")
+    lines.append(f"Redis: {'OK' if redis_client else 'NOT INIT'}")
 
     if full:
         lines.append("")
-        lines.append("🔐 Vars present:")
-        for k in ("BOT_TOKEN","DATABASE_URL","REDIS_URL","ADMIN_CHAT_ID","WEBHOOK_URL"):
+        for k in ("TELEGRAM_TOKEN", "DATABASE_URL", "REDIS_URL", "ADMIN_CHAT_ID", "WEBHOOK_URL"):
             lines.append(f"{k}: {'SET' if os.getenv(k) else 'MISSING'}")
 
     return "\n".join(lines)
 
 
-    # used by /readyz for latency measurement
-    await _check_postgres()
-
-
-    # used by /readyz for latency measurement
-    await _check_redis()
-
-
-    # wrapper used by /readyz
-    await check_postgres()
-
-    # wrapper used by /readyz
-    await check_redis()
-
-
-@asynccontextmanager
 async def get_db_session():
     if SessionLocal is None:
-        raise RuntimeError("DB session factory not initialized (call init_infrastructure first)")
+        raise RuntimeError("DB session factory not initialized")
     async with SessionLocal() as session:
         yield session
 
 
 async def run_migrations_safe():
-    """Run alembic upgrade head safely (do not crash app if it fails)."""
-    if not DATABASE_URL:
-        logger.warning("migrations: DATABASE_URL missing; skip")
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        logger.warning("DATABASE_URL missing, skipping migrations")
         return
     try:
         cfg = Config("alembic.ini")
-        # Alembic uses sync engine internally; it can work with DATABASE_URL (psycopg2) or asyncpg url depending on config.
-        # We keep it simple: rely on existing alembic.ini settings.
         command.upgrade(cfg, "head")
-        logger.info("migrations: alembic upgrade head OK")
+        logger.info("Alembic migrations applied")
     except Exception as e:
-        logger.error("migrations: alembic upgrade failed: %s: %s", type(e).__name__, e)
+        logger.error("Migration failed: %s: %s", type(e).__name__, e)
