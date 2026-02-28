@@ -18,6 +18,7 @@ from bot.economy_store import (
     create_payment_request, list_pending_requests, get_request, set_request_status,
     add_points, get_points_balance, list_user_requests,
     upsert_referral, get_referrer,
+
 )
 
 
@@ -31,8 +32,7 @@ def _git_sha() -> str:
         os.getenv("RAILWAY_GIT_COMMIT_SHA")
         or os.getenv("GIT_COMMIT_SHA")
         or os.getenv("COMMIT_SHA")
-        or ""
-    )
+        or "")
 
 def is_admin(update: Update) -> bool:
     return bool(ADMIN_CHAT_ID) and str(update.effective_chat.id) == str(ADMIN_CHAT_ID)
@@ -60,7 +60,8 @@ except Exception:
         "=====================================\n"
         "==           SLH  GUARDIAN          ==\n"
         "=====================================\n"
-    )
+
+)
 
 def _parse_amount(x: str) -> int:
     return int(str(x).strip())
@@ -110,10 +111,10 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/donate    support / donate\n"
         "/admins    list admins (access-controlled)\n"
     )
+
     if is_admin(update):
         text += "\n/admin     admin report\n/vars      Vars (SET/MISSING)\n/webhook   Webhook Info\n/diag      diagnostics\n/pingdb    DB latency\n/pingredis Redis latency\n/snapshot  snapshot\n"
     await update.message.reply_text(text, parse_mode="Markdown")
-
 async def whoami_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = update.effective_user
     c = update.effective_chat
@@ -571,6 +572,8 @@ def build_application():
     app.add_handler(CommandHandler("menu", with_latency("menu", menu_cmd)))
     app.add_handler(CommandHandler("status", with_latency("status", status_cmd)))
     app.add_handler(CommandHandler("health", with_latency("health", health_cmd)))
+    app.add_handler(CommandHandler("healthz", with_latency("healthz", healthz_cmd)))
+    app.add_handler(CommandHandler("readyz", with_latency("readyz", readyz_cmd)))
     app.add_handler(CommandHandler("donate", with_latency("donate", donate_cmd)))
     app.add_handler(CommandHandler("vars", with_latency("vars", vars_cmd)))
     app.add_handler(CommandHandler("webhook", with_latency("webhook", webhookinfo_cmd)))
@@ -600,3 +603,32 @@ def build_application():
     app.add_handler(CommandHandler("trade", with_latency("trade", trade_cmd)))
 
     return app
+
+# --- BOT COMMANDS: /healthz and /readyz (mirror HTTP endpoints) ---
+import json
+import time
+from telegram import Update
+from telegram.ext import ContextTypes
+
+async def healthz_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        # mirror HTTP /healthz shape
+        payload = {"ok": True, "uptime_s": _uptime_s(), "git_sha": (git_sha() if callable(globals().get("git_sha")) else None)}
+    except Exception as e:
+        payload = {"ok": False, "error": str(e)}
+    await update.effective_message.reply_text(json.dumps(payload, ensure_ascii=False))
+
+async def readyz_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    t0 = time.perf_counter()
+    try:
+        # lightweight readiness: if runtime_report exists use it; else just ok
+        rr = globals().get("runtime_report")
+        if rr:
+            _ = await rr(full=False)
+        payload = {"ok": True, "elapsed_ms": int((time.perf_counter() - t0) * 1000)}
+    except Exception as e:
+        payload = {"ok": False, "error": str(e), "elapsed_ms": int((time.perf_counter() - t0) * 1000)}
+    await update.effective_message.reply_text(json.dumps(payload, ensure_ascii=False))
+
+
+

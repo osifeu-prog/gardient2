@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import time
 from datetime import datetime, timezone
@@ -21,7 +21,7 @@ async def create_payment_request(
     note: Optional[str] = None,
 ) -> int:
     req_id = _now_ms()
-    async with get_db_session() as s:
+    async for s in get_db_session():
         await s.execute(
             text("""
                 INSERT INTO payment_requests(id,user_id,kind,amount,currency,tx_ref,note,status)
@@ -34,7 +34,7 @@ async def create_payment_request(
 
 
 async def list_pending_requests(limit: int = 10) -> List[Dict[str, Any]]:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(
             text("""
                 SELECT id,user_id,kind,amount,currency,tx_ref,note,created_at
@@ -52,7 +52,7 @@ async def list_pending_requests(limit: int = 10) -> List[Dict[str, Any]]:
 
 
 async def get_request(req_id: int) -> Optional[Dict[str, Any]]:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(
             text("""
                 SELECT id,user_id,kind,amount,currency,tx_ref,note,status,decided_by,decided_at,created_at
@@ -80,7 +80,7 @@ async def get_request(req_id: int) -> Optional[Dict[str, Any]]:
 
 
 async def set_request_status(req_id: int, status: str, decided_by: int) -> None:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         await s.execute(
             text("""
                 UPDATE payment_requests
@@ -94,7 +94,7 @@ async def set_request_status(req_id: int, status: str, decided_by: int) -> None:
 
 async def add_points(user_id: int, delta: int, reason: str, ref: Optional[str] = None) -> int:
     entry_id = _now_ms()
-    async with get_db_session() as s:
+    async for s in get_db_session():
         await s.execute(
             text("""
                 INSERT INTO points_ledger(id,user_id,delta,reason,ref)
@@ -107,13 +107,13 @@ async def add_points(user_id: int, delta: int, reason: str, ref: Optional[str] =
 
 
 async def get_points_balance(user_id: int) -> int:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(text("SELECT COALESCE(SUM(delta),0) FROM points_ledger WHERE user_id=:u"), {"u": int(user_id)})
         return int(r.scalar() or 0)
 
 
 async def list_user_requests(user_id: int, limit: int = 5) -> List[Dict[str, Any]]:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(
             text("""
                 SELECT id,kind,amount,currency,status,tx_ref,created_at,decided_at
@@ -133,7 +133,7 @@ async def list_user_requests(user_id: int, limit: int = 5) -> List[Dict[str, Any
 async def upsert_referral(referrer_id: int, referred_id: int) -> bool:
     if int(referrer_id) == int(referred_id):
         return False
-    async with get_db_session() as s:
+    async for s in get_db_session():
         await s.execute(
             text("INSERT INTO referrals(referrer_id,referred_id) VALUES (:r,:u) ON CONFLICT DO NOTHING"),
             {"r": int(referrer_id), "u": int(referred_id)},
@@ -143,7 +143,7 @@ async def upsert_referral(referrer_id: int, referred_id: int) -> bool:
 
 
 async def get_referrer(referred_id: int) -> Optional[int]:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(text("SELECT referrer_id FROM referrals WHERE referred_id=:u LIMIT 1"), {"u": int(referred_id)})
         row = r.first()
         return int(row[0]) if row else None
@@ -152,7 +152,7 @@ async def get_referrer(referred_id: int) -> Optional[int]:
 async def add_account(user_id: int, acc_type: str, label: str, details: dict) -> int:
     acc_id = _now_ms()
     import json
-    async with get_db_session() as s:
+    async for s in get_db_session():
         await s.execute(
             text("""
                 INSERT INTO accounts(id,user_id,type,label,details_json)
@@ -170,7 +170,7 @@ async def add_account(user_id: int, acc_type: str, label: str, details: dict) ->
     return int(acc_id)
 
 async def list_accounts(user_id: int, limit: int = 10):
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(
             text("""
                 SELECT id,type,label,details_json,created_at
@@ -187,7 +187,7 @@ async def list_accounts(user_id: int, limit: int = 10):
         return out
 
 async def set_plan_price(code: str, amount: int, currency: str = "SELHA") -> None:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         await s.execute(
             text("""
                 INSERT INTO plans(code,name,price_amount,price_currency,is_active)
@@ -200,9 +200,10 @@ async def set_plan_price(code: str, amount: int, currency: str = "SELHA") -> Non
         await s.commit()
 
 async def list_plans():
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(text("SELECT code,name,price_amount,price_currency,is_active FROM plans ORDER BY code"))
         out = []
         for row in r.fetchall():
             out.append({"code": row[0], "name": row[1], "price_amount": int(row[2]), "price_currency": row[3], "is_active": bool(row[4])})
         return out
+

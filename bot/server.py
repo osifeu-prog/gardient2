@@ -82,6 +82,11 @@ async def healthz():
         "git_sha": (git_sha()[:12] if git_sha() else None),
     }
 
+@app.get("/health")
+async def health():
+    # alias for legacy clients
+    return await healthz()
+
 
 @app.get("/readyz")
 async def readyz():

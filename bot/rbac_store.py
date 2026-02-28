@@ -6,7 +6,7 @@ from bot.infrastructure import get_db_session
 
 
 async def has_role(tg_user_id: int, role_name: str) -> bool:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(
             text("""
                 SELECT 1
@@ -21,7 +21,7 @@ async def has_role(tg_user_id: int, role_name: str) -> bool:
 
 
 async def grant_role(tg_user_id: int, role_name: str, granted_by: Optional[int] = None) -> None:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         rid = await s.execute(text("SELECT id FROM roles WHERE name=:n"), {"n": role_name})
         row = rid.first()
         if not row:
@@ -40,7 +40,7 @@ async def grant_role(tg_user_id: int, role_name: str, granted_by: Optional[int] 
 
 
 async def revoke_role(tg_user_id: int, role_name: str) -> None:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         await s.execute(
             text("""
                 DELETE FROM user_roles
@@ -52,7 +52,7 @@ async def revoke_role(tg_user_id: int, role_name: str) -> None:
 
 
 async def list_users_with_role(role_name: str) -> List[Dict]:
-    async with get_db_session() as s:
+    async for s in get_db_session():
         r = await s.execute(
             text("""
                 SELECT ur.user_id, ur.granted_by, ur.granted_at
@@ -71,3 +71,4 @@ async def list_users_with_role(role_name: str) -> List[Dict]:
                 "granted_at": str(row[2]),
             })
         return out
+
