@@ -14,3 +14,13 @@ _diag/
 
 # dotenv
 .env
+# secrets
+.env.local
+
+# backups
+telegram-guardian_backupkit_*.zip
+migrations.BAK_*/
+
+# node
+node_modules/
+**/node_modules/
